@@ -1,0 +1,20 @@
+Tree : "{1C6F9AD2669C17F9}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_domestica_2s.et" {
+ ID "27132768B0952045"
+ components {
+  ActionsManagerComponent "{6A9D61EBB9224BC7}" {
+   ActionContexts {
+    UserActionContext "{6A9D61EBB2040174}" {
+     ContextName "LRP_ApplePick"
+     Position PointInfo "{6A9D61EBC063B8A8}" {
+      Offset 0 1.2 0
+     }
+     Radius 2
+    }
+   }
+   additionalActions {
+    LRP_PickAppleUserAction "{6A9D61EBA16B6CE4}" {
+    }
+   }
+  }
+ }
+}
