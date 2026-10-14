@@ -84,7 +84,7 @@ if [[ -n "$LATEST_LOG" ]]; then
   if [[ ! -f "$SCRIPT_LOG" ]]; then
     info "ERROR: The latest Workbench session has no script.log; cannot verify compilation."
     SCRIPT_ERRORS=1
-  elif grep -Eiq "SCRIPT[[:space:]]*\\(E\\)|[Ss]cript validation failed|[Cc]an.t compile .*script module|\\.c\\([0-9]+\\):[[:space:]]*error:" "$SCRIPT_LOG"; then
+  elif grep -Eiq 'SCRIPT[[:space:]]*\(E\)|[Ss]cript validation failed|[Cc]an.t compile .*script module|\.c\([0-9]+\):[[:space:]]*error:' "$SCRIPT_LOG"; then
     info "ERROR: Workbench reported Enforce Script compilation errors."
     SCRIPT_ERRORS=1
   else
