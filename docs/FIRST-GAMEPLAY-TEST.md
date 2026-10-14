@@ -1,29 +1,26 @@
-# LeafRP first gameplay smoke test: Welcome hint
+# LeafRP gameplay smoke test: welcome on character control
 
-This small feature verifies more than script compilation: it should show a visible welcome hint after the **local player spawns** in a scenario using a `SCR_BaseGameMode`-derived game mode.
+This feature shows a local **LeafRP** hint about 1.5 seconds after your client starts controlling a soldier character. It also works with **Game Master possession**, which does not necessarily trigger the ordinary player-spawn callback.
 
-## Code
-
-- `scripts/Game/LeafRP/LRP_WelcomeGameMode.c` extends the built-in `SCR_BaseGameMode` with a `modded class`.
-- Calls the original `OnPlayerSpawned` handler, checks that it is the local player, and schedules a hint after 1.5 seconds.
-- Uses `SCR_HintManagerComponent.ShowCustomHint` (prototyping API; the eventual RP UI should use configured, localized UI infos).
-
-No custom prefab is necessary for this prototype. Existing scenarios must actually use a compatible `SCR_BaseGameMode` and offer a spawnable player.
+## Source
+- `scripts/Game/LeafRP/LRP_WelcomePlayerController.c` mods `SCR_PlayerController`.
+- The code listens to `OnControlledEntityChanged` and only shows a hint on the local player's controller.
+- The hint is displayed through the local `SCR_HintManagerComponent` and its boolean result is logged.
+- `ShowCustomHint` is a quick prototyping tool and should eventually be replaced with a configured and localized hint.
 
 ## Test in Workbench
+1. Ensure this branch is checked out in the LeafRP mod directory and reopen `RP_TEST` in Workbench. Make sure your mod is among the loaded projects.
+2. Compile scripts.
+3. Open a playable scenario (Game Master is suitable), press Play, then **take control of a soldier character**. Simply opening the editor or placing an AI character is not enough.
+4. Around 1.5 seconds after taking control, look for the **LeafRP** hint.
 
-1. Pull the feature branch into your local mod project (or, after merging, pull `main`).
-2. Open **both base-game project and LeafRP** in Workbench.
-3. Compile scripts. Start a playable scenario/world that uses `SCR_BaseGameMode` or one of its subclasses. You need a working player spawn.
-4. Spawn your player. Around 1.5 seconds later, a hint titled **LeafRP** should appear for about eight seconds.
-5. Inspect Workbench logs for `[LeafRP] Local player spawned` and `[LeafRP] Welcome hint requested`.
+## Debugging (important)
+Search the **gameplay / World Editor Play session** logs for `[LeafRP]`, not the GitHub Actions compiler logs.
 
-If you see neither log entry, verify that the scenario's game mode derives from `SCR_BaseGameMode` and that the mod is active. If you see the first but not the second, check callqueue and log errors. If the second appears but the UI does not, check whether gameplay hints are enabled and whether the client-side hint manager exists.
+- No `[LeafRP]` messages: wrong mod loaded, stale scripts, or the scenario did not initialize a `SCR_PlayerController`.
+- `Controlled entity changed` with a different local player ID, or `local=0`: the local-player check rejected the event. Report these values.
+- `Local character controlled` but `no SCR_HintManagerComponent`: the scenario lacks the hint-manager game-mode component. Try a standard scenario with UI/hints or add the component to a test game mode.
+- `Hint manager refused`: inspect hint settings and whether the UI is active.
+- `Welcome hint displayed successfully` but no visible popup: the hint subsystem accepted the request; investigate the presentation/UI context.
 
-## Validation
-
-GitHub Actions compiles the committed source through Workbench on the Linux self-hosted runner. Green CI confirms **compilation**, not that the welcome hint rendered in-game; the last part needs a manual test.
-
-## Multiplayer note
-
-The player-ID comparison is intended to avoid displaying the hint for unrelated players on a client. It is not proof of multiplayer client-side event delivery; confirm the behavior with a connected client before relying on it for RP servers.
+The Linux GitHub Actions job **only verifies compilation**; the actual visibility test must happen in-game. The feature is not yet verified for dedicated-server multiplayer sessions.
