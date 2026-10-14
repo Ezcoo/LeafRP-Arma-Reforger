@@ -6,6 +6,7 @@
 .vscode/
 *.tmp
 .DS_Store
+resourceDatabase.rdb
 
 # Keep addon.gproj, Scripts/, and all source assets in Git.
 # Review large/binary files and use Git LFS if appropriate.
