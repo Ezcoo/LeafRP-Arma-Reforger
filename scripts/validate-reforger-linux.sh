@@ -63,6 +63,9 @@ set +e
 RESULT=$?
 set -e
 
+# Proton may return 0 even when Enfusion reports compilation errors.
+# Inspect the current session's script.log rather than trusting $? alone.
+SCRIPT_ERRORS=0
 LATEST_LOG=""
 if [[ -d "$LOG_ROOT" ]]; then
   while IFS= read -r -d '' file; do
@@ -76,16 +79,34 @@ if [[ -n "$LATEST_LOG" ]]; then
   LATEST_DIR="$(dirname "$LATEST_LOG")"
   info "Workbench log session: $LATEST_DIR"
   cp -a -- "$LATEST_DIR/." "$LOG_OUTPUT/"
+
+  SCRIPT_LOG="$LATEST_DIR/script.log"
+  if [[ ! -f "$SCRIPT_LOG" ]]; then
+    info "ERROR: The latest Workbench session has no script.log; cannot verify compilation."
+    SCRIPT_ERRORS=1
+  elif grep -Eiq 'SCRIPT[[:space:]]*\(E\)|[Ss]cript validation failed|[Cc]an.t compile .*script module|\.c\([0-9]+\):[[:space:]]*error:' "$SCRIPT_LOG"; then
+    info "ERROR: Workbench reported Enforce Script compilation errors."
+    SCRIPT_ERRORS=1
+  else
+    info "No compiler errors found in the current Workbench script.log."
+  fi
+
   info 'Potential compiler diagnostics:'
   mapfile -d '' -t LOG_FILES < <(find "$LOG_OUTPUT" -type f -name '*.log' -print0)
   if (( ${#LOG_FILES[@]} > 0 )); then
     grep -nEi '\(E\)|SCRIPT.*[Ee]rror|error|failed|failure' "${LOG_FILES[@]}" | tail -n 100 || true
   fi
 else
-  info "WARNING: No new Workbench .log files found in $LOG_ROOT"
+  info "ERROR: No new Workbench .log files found in $LOG_ROOT; cannot verify compilation."
+  SCRIPT_ERRORS=1
 fi
 
-info "Workbench exit code: $RESULT"
+if (( RESULT == 0 && SCRIPT_ERRORS != 0 )); then
+  info "Process returned 0, but validation has failed according to Workbench logs."
+  RESULT=1
+fi
+
+info "Effective validation exit code: $RESULT"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   if (( RESULT == 0 )); then
     printf '### Arma Reforger validation: passed\n\nProject: %s\n' "$GPROJ_REL" >> "$GITHUB_STEP_SUMMARY"
