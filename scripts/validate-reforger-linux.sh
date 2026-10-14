@@ -34,8 +34,6 @@ to_proton_z_path() {
 # Register both base-game addons and the parent directory containing this mod.
 GPROJ_WIN="$(to_proton_z_path "$GPROJ")"
 GAME_ADDONS_WIN="$(to_proton_z_path "$GAME_ADDONS")"
-MOD_ADDONS_DIR="$(dirname "$(dirname "$GPROJ")")"
-MOD_ADDONS_WIN="$(to_proton_z_path "$MOD_ADDONS_DIR")"
 
 export STEAM_COMPAT_DATA_PATH="$PREFIX"
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_ROOT"
@@ -55,7 +53,7 @@ set +e
 (
   cd -- "$(dirname "$WORKBENCH")" || exit 2
   "$PROTON" waitforexitandrun "$WORKBENCH" \
-    -addonsDir "$GAME_ADDONS_WIN,$MOD_ADDONS_WIN" \
+    -addonsDir "$GAME_ADDONS_WIN" \
     -gproj "$GPROJ_WIN" \
     -wbModule=ScriptEditor \
     -run \
