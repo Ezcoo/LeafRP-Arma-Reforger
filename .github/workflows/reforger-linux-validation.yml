@@ -3,7 +3,7 @@ name: Validate Reforger scripts (Linux)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/hands-up-prototype]
     paths:
       - "Scripts/**"
       - "scripts/**"
