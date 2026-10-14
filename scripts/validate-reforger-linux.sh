@@ -31,7 +31,7 @@ to_proton_z_path() {
   printf 'Z:%s' "$path"
 }
 
-# Register both base-game addons and the parent directory containing this mod.
+# Make the base-game addons discoverable by Workbench.
 GPROJ_WIN="$(to_proton_z_path "$GPROJ")"
 GAME_ADDONS_WIN="$(to_proton_z_path "$GAME_ADDONS")"
 
@@ -57,7 +57,8 @@ set +e
     -gproj "$GPROJ_WIN" \
     -wbModule=ScriptEditor \
     -run \
-    -validate
+    -validate \
+    -exitAfterInit
 )
 RESULT=$?
 set -e
