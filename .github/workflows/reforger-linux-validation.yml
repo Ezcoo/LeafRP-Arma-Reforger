@@ -1,0 +1,41 @@
+name: Validate Reforger scripts (Linux)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Scripts/**"
+      - "scripts/**"
+      - "**/*.gproj"
+      - ".github/workflows/reforger-linux-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reforger-linux-workbench
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux, x64, reforger-workbench]
+    timeout-minutes: 30
+    env:
+      REFORGER_GPROJ_REL: addon.gproj
+    steps:
+      - name: Check out the committed mod
+        uses: actions/checkout@v4
+
+      - name: Validate with Workbench under Proton
+        shell: bash
+        run: bash scripts/validate-reforger-linux.sh
+
+      - name: Upload Workbench diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbench-logs
+          path: ${{ runner.temp }}/reforger-workbench-logs/
+          if-no-files-found: warn
+          retention-days: 14
