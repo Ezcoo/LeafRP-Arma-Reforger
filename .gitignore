@@ -1,0 +1,11 @@
+# Generated Workbench / Enfusion output
+*.log
+.ci-logs/
+.cache/
+.idea/
+.vscode/
+*.tmp
+.DS_Store
+
+# Keep addon.gproj, Scripts/, and all source assets in Git.
+# Review large/binary files and use Git LFS if appropriate.
