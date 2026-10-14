@@ -1,0 +1,15 @@
+Tree : "{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_domestica_2s.et" {
+ components {
+  ActionsManagerComponent "{6A9D61EBB9224BC7}" {
+   additionalActions {
+    LRP_PickAppleUserAction "{6A9D61EBA16B6CE4}" {
+     ParentContextList {
+      "LRP_ApplePick"
+     }
+     ActionTitle "Pick apples"
+    }
+   }
+  }
+ }
+ coords 2058.867 0 1860.906
+}
