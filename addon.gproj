@@ -1,0 +1,8 @@
+GameProject {
+ ID "RPTEST"
+ GUID "6A9D3217803A8770"
+ TITLE "RP_TEST"
+ Dependencies {
+  "58D0FB3206B6F859"
+ }
+}
