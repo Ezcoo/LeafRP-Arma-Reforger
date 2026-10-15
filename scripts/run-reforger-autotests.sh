@@ -93,6 +93,7 @@ expected = {
     "LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory",
     "LRP_TEST_AppleHarvest_AppleIsEdible",
     "LRP_TEST_AppleHarvest_CanEatAtFullHealth",
+    "LRP_TEST_AppleHarvest_EatUsingInventoryUse",
 }
 missing = [name for name in sorted(expected) if not any(name in actual for actual in names)]
 print(f"[autotest-ci] JUnit: {len(cases)} testcases, {len(errors)} failures/errors, {len(skipped)} skipped")
