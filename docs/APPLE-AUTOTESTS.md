@@ -26,7 +26,7 @@ Suite: **`LRP_TEST_AppleHarvestSuite`**
 - `LRP_TEST_AppleHarvest_RegrowsAfterDelay`
 - `LRP_TEST_AppleHarvest_DisabledRegrowth`
 
-The tests are compiled only under Workbench's `WORKBENCH` definition, matching Bohemia's own `SCR_TEST_Example1TestSuite` example.
+The tests are compiled in diagnostic builds under `ENABLE_DIAG`, allowing both Workbench and the diagnostic game test runner to discover them while avoiding test classes in release-game code.
 
 ## Run the tests manually in Workbench (recommended first check)
 
