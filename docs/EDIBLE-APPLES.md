@@ -25,7 +25,7 @@ This feature uses **vanilla Arma Reforger's built-in consumable gadget pipeline*
 
 The native `LRP_TEST_AppleHarvestSuite` now also checks that the new prefab instantiates `SCR_ConsumableItemComponent`, its `LRP_ConsumableEffectEatApple` exists with `GetDeleteOnUse()` enabled, and a vanilla healthy soldier can use it even without wounds.
 
-These tests do **not** yet simulate the player's inventory button presses or the completed use animation; the manual acceptance test covers those.
+**CI verified:** [11/11 native Reforger Autotests passed](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38690295814) with no script compilation errors, test failures, or skipped tests. These tests do **not** simulate the player's inventory button presses or the completed use animation; the manual acceptance test covers those.
 
 ## Known limitations
 
