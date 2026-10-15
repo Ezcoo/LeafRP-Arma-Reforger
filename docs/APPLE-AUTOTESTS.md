@@ -46,7 +46,7 @@ The Linux runner compiles scripts through `scripts/validate-reforger-linux.sh`, 
 
 The runner verifies a **fresh** `junit.xml` report containing all seven expected tests, with no errors, failures or skips. It fails the workflow if the suite did not run or the game times out (even if Proton exits with code 0). The reports and logs are uploaded as `apple-autotest-results` artifacts.
 
-Original five stock tests verified against https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38680240538. The two new prefab integration tests are being validated separately.
+All seven tests—including actual prefab/context registration and visibility to a spawned vanilla soldier—passed in https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38685855731 (7 passed, 0 failed, 0 skipped).
 
 After merging, the regular `main`-branch GitHub Actions workflow will execute **both compilation and these tests** for every relevant push. Pull requests do not automatically execute remote code on the user's machine until merged, preserving our existing self-hosted runner trust boundary.
 
@@ -59,7 +59,7 @@ After merging, the regular `main`-branch GitHub Actions workflow will execute **
 
 ## Troubleshooting: apple interaction disappeared after refactor
 
-The initial refactor checked whether its runtime stock object existed inside `CanBeShownScript` and hid the action if it did not. The updated action initializes its stock on first use/query and logs stock initialization and empty-tree visibility decisions.
+The initial refactor checked whether its runtime stock object existed inside `CanBeShownScript` and hid the action if it did not. The updated action initializes its stock on first use/query and logs stock initialization and empty-tree visibility decisions. We also found that the reusable apple-tree prefab defined an action context but was missing the action's `ParentContextList` and `UIInfo`; those were set only as an override in the placed world instance. The prefab now has both, matching Bohemia's action-context guidelines.
 
 1. Confirm the **same playable sub-scene** and saved editable tree prefab are loaded in Workbench; the `.et` prefab and Arland sub-scene are now present in this branch; ensure the scene opens with the LeafRP addon loaded.
 2. On the tree's `ActionsManagerComponent`, confirm the action is still **LRP_PickAppleUserAction**, its parent context still matches `LRP_ApplePick`, and the context is positioned near the trunk.
@@ -68,7 +68,7 @@ The initial refactor checked whether its runtime stock object existed inside `Ca
 5. Search the **live gameplay** `script.log` for `[LeafRP] Apple action`. If it says `starting=0`, fix the prefab's serialized value. If it says `hidden: remaining=0`, the tree is currently depleted.
 6. If there are **no** `Apple action` logs, Workbench is probably not instantiating the action at all; investigate whether the edited prefab, scenario sub-scene, action context or mod project is loaded.
 
-Our new tests cover actual prefab action context registration and scripted visibility in addition to harvest/regrowth logic, but do **not** simulate the HUD interaction selection or player input. The edited tree prefab and Arland sub-scene are now committed in this branch. The new suite directly instantiates the real tree prefab and checks action registration and visibility. A complete on-screen interaction test with actual player input is still separate.
+Our new tests cover actual prefab action context registration and scripted visibility in addition to harvest/regrowth logic, but do **not** simulate the HUD interaction selection or player input. The edited tree prefab and Arland sub-scene are now committed in this branch. The new suite directly instantiates the real tree prefab and checks action registration, UI info and visibility. A complete on-screen interaction test with actual player input is still separate.
 
 ## What remains
 
