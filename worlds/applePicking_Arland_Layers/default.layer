@@ -33,6 +33,13 @@ SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastru
      VisibilityRange 3
      Duration 5
     }
+    LRP_ViewFishingStatsUserAction "{6A9EB9502B27501B}" {
+     ParentContextList {
+      "LRP_FishingSpot"
+     }
+     ActionTitle "View Fishing Stats"
+     VisibilityRange 3.8
+    }
    }
   }
  }
