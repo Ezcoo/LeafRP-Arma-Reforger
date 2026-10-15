@@ -13,9 +13,23 @@ class LRP_ConsumableEffectEatApple : SCR_ConsumableEffectBase
 	{
 		failReason = SCR_EConsumableFailReason.NONE;
 
-		ChimeraCharacter eater = ChimeraCharacter.Cast(user);
-		if (!eater || target != user)
+		// The native inventory UI calls CanApplyEffect(character, character).
+		// However SCR_ConsumableItemComponent.ActivateAction() calls
+		// CanApplyEffect(character, GetOwner()), where GetOwner() is the ITEM!
+		// We must accept both call conventions or the actual gadget action
+		// silently returns before triggering our animation/effect.
+		ChimeraCharacter eater = ChimeraCharacter.Cast(target);
+		if (!eater)
 			return false;
+
+		if (user != target)
+		{
+			SCR_ConsumableItemComponent apple = SCR_ConsumableItemComponent.Cast(user.FindComponent(SCR_ConsumableItemComponent));
+			if (!apple || apple.GetConsumableEffect() != this)
+				return false;
+
+			Print("[LeafRP] Eat Apple activation gate reached by native gadget.", LogLevel.NORMAL);
+		}
 
 		CharacterControllerComponent controller = eater.GetCharacterController();
 		return controller != null && controller.GetLifeState() == ECharacterLifeState.ALIVE;
