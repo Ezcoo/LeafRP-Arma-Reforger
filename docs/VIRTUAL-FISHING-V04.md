@@ -5,7 +5,7 @@ This is a **local single-player gameplay prototype**. There is no persistent inv
 ## Gameplay
 
 1. Press **Start Fishing** once (instant action).
-2. Wait a random **30–120 seconds**. A distance check every 250 ms cancels when more than 5 m from the starting position, or when player control is lost.
+2. Wait a random **5–120 seconds**. A distance check every 250 ms cancels when more than 5 m from the starting position, or when player control is lost.
 3. 70% of attempts produce a **BITE!** hint; 30% finish with no bite.
 4. On bite, **Hook Fish!** appears for **1 second**. Trigger it before the window expires. Missed bites do not award fish.
 5. Successful hooks resolve the existing v0.3 species/rarity/weight logic and update the statistics. A caught old boot remains a non-fish find.
@@ -24,7 +24,7 @@ This is a **local single-player gameplay prototype**. There is no persistent inv
 
 - [ ] Scripts compile successfully.
 - [ ] Starting fishing is instant and does not permit a second concurrent attempt.
-- [ ] A bite or no-bite happens after 30–120 seconds.
+- [ ] A bite or no-bite happens after 5–120 seconds.
 - [ ] **Hook Fish!** appears only during the bite and lasts around one second.
 - [ ] Hooking during the window records a catch (fish or rare junk); missing does not.
 - [ ] Moving >5 m away cancels fishing without a catch.
