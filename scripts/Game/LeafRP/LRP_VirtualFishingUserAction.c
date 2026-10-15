@@ -104,7 +104,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		}
 
 		s_iFishingState = 2;
-		Print("[LeafRP] Fishing BITE event: hook within 1 second. Sound cue hook point.", LogLevel.NORMAL);
+		Print("[LeafRP] Fishing BITE event: hook within 1 second. Press LRP_HookFish now.", LogLevel.NORMAL);
 		LRP_PlayFishingSound("LRP_FISH_BITE");
 		SCR_HintManagerComponent.ShowCustomHint("BITE! Press your Hook Fish key NOW!", "LeafRP Fishing", 1.0);
 		GetGame().GetCallqueue().CallLater(LRP_BiteExpired, 1000, false, token);
@@ -158,7 +158,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		s_iFishingState = 1;
 		s_iAttemptToken++;
 		int token = s_iAttemptToken;
-		int waitMs = Math.RandomInt(5000, 120001);
+		int waitMs = Math.RandomInt(5000, 10001);
 		Print(string.Format("[LeafRP] Fishing started; waiting %1 milliseconds.", waitMs), LogLevel.NORMAL);
 		SCR_HintManagerComponent.ShowCustomHint("Waiting for a bite... Stay nearby!", "LeafRP Fishing", 3.0);
 		LRP_PlayFishingSound(string.Format("LRP_FISH_CAST_%1", Math.RandomInt(1, 5)));
