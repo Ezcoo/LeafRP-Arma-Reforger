@@ -85,4 +85,115 @@ class LRP_TEST_AppleHarvest_DisabledRegrowth : SCR_AutotestCaseBase
 	}
 }
 
+
+// Runtime prefab integration tests: exercise the registered ActionsManager,
+// context routing and action visibility, not only the harvest-stock model.
+// GUID points to the LeafRP prefab in this repository, not the vanilla tree.
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 25)]
+class LRP_TEST_AppleHarvest_TreePrefabRegistersContext : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_PrefabActions()
+	{
+		Resource prefab = Resource.Load("{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_domestica_2s.et");
+		AssertTrue(prefab.IsValid(), "LeafRP apple tree prefab must be a valid resource");
+		if (!prefab.IsValid())
+			return;
+
+		IEntity tree = GetGame().SpawnEntityPrefab(prefab, GetGame().GetWorld());
+		AssertTrue(tree != null, "Apple tree prefab must spawn");
+		if (!tree)
+			return;
+
+		ActionsManagerComponent manager = ActionsManagerComponent.Cast(tree.FindComponent(ActionsManagerComponent));
+		AssertTrue(manager != null, "Apple tree must contain ActionsManagerComponent");
+		if (!manager)
+		{
+			SCR_EntityHelper.DeleteEntityAndChildren(tree);
+			return;
+		}
+
+		UserActionContext context = manager.GetContext("LRP_ApplePick");
+		AssertTrue(context != null, "Tree must have LRP_ApplePick context");
+		if (!context)
+		{
+			SCR_EntityHelper.DeleteEntityAndChildren(tree);
+			return;
+		}
+
+		array<BaseUserAction> contextActions = {};
+		context.GetActionsList(contextActions);
+		LRP_PickAppleUserAction appleAction;
+		foreach (BaseUserAction candidate : contextActions)
+		{
+			appleAction = LRP_PickAppleUserAction.Cast(candidate);
+			if (appleAction)
+				break;
+		}
+
+		AssertTrue(appleAction != null, "LRP_PickAppleUserAction must be linked to the LRP_ApplePick context");
+		if (appleAction)
+		{
+			AssertTrue(appleAction.GetUIInfo() != null, "Apple-picking action must have UIInfo");
+			string name = appleAction.GetActionName();
+			AssertTrue(name.Contains("Pick apple"), "Apple action name should be visible to the player");
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(tree);
+	}
+}
+
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 25)]
+class LRP_TEST_AppleHarvest_TreeActionVisibleToCharacter : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_Visibility()
+	{
+		Resource treePrefab = Resource.Load("{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_domestica_2s.et");
+		Resource characterPrefab = Resource.Load("{26A9756790131354}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et");
+		AssertTrue(treePrefab.IsValid(), "Apple tree prefab should load");
+		AssertTrue(characterPrefab.IsValid(), "Vanilla US Army character prefab should load");
+		if (!treePrefab.IsValid() || !characterPrefab.IsValid())
+			return;
+
+		IEntity tree = GetGame().SpawnEntityPrefab(treePrefab, GetGame().GetWorld());
+		IEntity entity = GetGame().SpawnEntityPrefab(characterPrefab, GetGame().GetWorld());
+		AssertTrue(tree != null, "Apple tree should spawn");
+		AssertTrue(ChimeraCharacter.Cast(entity) != null, "Vanilla character should spawn");
+		if (!tree || !ChimeraCharacter.Cast(entity))
+		{
+			if (entity)
+				SCR_EntityHelper.DeleteEntityAndChildren(entity);
+			if (tree)
+				SCR_EntityHelper.DeleteEntityAndChildren(tree);
+			return;
+		}
+
+		ActionsManagerComponent manager = ActionsManagerComponent.Cast(tree.FindComponent(ActionsManagerComponent));
+		AssertTrue(manager != null, "Tree must have action manager");
+		LRP_PickAppleUserAction action;
+		if (manager)
+		{
+			array<BaseUserAction> actions = {};
+			manager.GetActionsList(actions);
+			foreach (BaseUserAction candidate : actions)
+			{
+				action = LRP_PickAppleUserAction.Cast(candidate);
+				if (action)
+					break;
+			}
+		}
+
+		AssertTrue(action != null, "Tree must register apple-picking action");
+		if (action)
+		{
+			AssertTrue(action.CanBeShownScript(entity), "Fresh tree action should be visible to a real character");
+			AssertTrue(!action.CanBeShownScript(null), "Apple action should not show without a character");
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(entity);
+		SCR_EntityHelper.DeleteEntityAndChildren(tree);
+	}
+}
+
 #endif
