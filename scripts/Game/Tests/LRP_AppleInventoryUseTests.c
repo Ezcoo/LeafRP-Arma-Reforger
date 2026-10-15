@@ -31,6 +31,7 @@ modded class SCR_CharacterInventoryStorageComponent
 	}
 }
 
+[BaseContainerProps()]
 modded class LRP_ConsumableEffectEatApple
 {
 	static int s_iLRPTestConsumptionReports;
