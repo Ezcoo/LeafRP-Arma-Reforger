@@ -1,35 +1,67 @@
-// LeafRP apple-picking prototype. Requires no addon besides vanilla Reforger.
+// LeafRP apple picking. Attach to an ActionsManagerComponent on a placeable
+// apple-tree prefab (details in docs/APPLE-PICKING-PROTOTYPE.md).
 //
-// Attach LRP_PickAppleUserAction to the Additional Actions of an
-// ActionsManagerComponent on a *placeable apple tree* prefab.
-// In this first iteration, harvested apples are a local session counter,
-// NOT physical inventory items. Multiplayer synchronization comes later.
+// Phase 2: finite per-tree harvest and optional regrowth. Virtual apples only:
+// no physical inventory, persistence or multiplayer authority yet.
 class LRP_PickAppleUserAction : ScriptedUserAction
 {
-	[Attribute("5", UIWidgets.EditBox, "Number of apples available on this tree")]
+	[Attribute("5", UIWidgets.EditBox, "Number of apples available per harvest")]
 	protected int m_iStartingApples;
 
-	protected int m_iRemainingApples;
+	[Attribute("300", UIWidgets.EditBox, "Seconds before an empty tree refills; 0 disables regrowth")]
+	protected int m_iRegrowSeconds;
+
+	protected ref LRP_AppleHarvestStock m_LRPStock;
+	protected bool m_bLRPLoggedEmptyTree;
+
+	// Actions may be queried for visibility before their Init callback has
+	// initialized our runtime-only stock object. Avoid silently hiding them.
+	protected void LRP_EnsureStock()
+	{
+		if (m_LRPStock)
+			return;
+
+		m_LRPStock = new LRP_AppleHarvestStock();
+		m_LRPStock.Reset(m_iStartingApples, m_iRegrowSeconds);
+		Print(string.Format("[LeafRP] Apple action stock initialized: starting=%1, remaining=%2, regrow=%3s.",
+			m_iStartingApples, m_LRPStock.GetRemaining(), m_iRegrowSeconds), LogLevel.NORMAL);
+	}
 
 	override void Init(IEntity pOwnerEntity, GenericComponent pManagerComponent)
 	{
 		super.Init(pOwnerEntity, pManagerComponent);
-		m_iRemainingApples = Math.Max(m_iStartingApples, 0);
-		Print(string.Format("[LeafRP] Apple tree initialized with %1 apples.", m_iRemainingApples), LogLevel.NORMAL);
+		LRP_EnsureStock();
 	}
 
 	override bool GetActionNameScript(out string outName)
 	{
-		outName = string.Format("Pick apple (%1 left)", m_iRemainingApples);
+		LRP_EnsureStock();
+		m_LRPStock.Update(System.GetUnixTime());
+		outName = string.Format("Pick apple (%1 left)", m_LRPStock.GetRemaining());
 		return true;
 	}
 
 	override bool CanBeShownScript(IEntity user)
 	{
-		if (m_iRemainingApples <= 0)
+		if (!ChimeraCharacter.Cast(user))
 			return false;
 
-		return ChimeraCharacter.Cast(user) != null;
+		LRP_EnsureStock();
+		m_LRPStock.Update(System.GetUnixTime());
+
+		if (m_LRPStock.GetRemaining() <= 0)
+		{
+			if (!m_bLRPLoggedEmptyTree)
+			{
+				Print(string.Format("[LeafRP] Apple action hidden: remaining=%1, starting=%2, regrowAt=%3.",
+					m_LRPStock.GetRemaining(), m_iStartingApples, m_LRPStock.GetRegrowAt()), LogLevel.NORMAL);
+				m_bLRPLoggedEmptyTree = true;
+			}
+			return false;
+		}
+
+		m_bLRPLoggedEmptyTree = false;
+		return true;
 	}
 
 	override bool CanBePerformedScript(IEntity user)
@@ -47,19 +79,17 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 			return;
 
 		SCR_PlayerController player = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		if (!player)
+		if (!player || !m_LRPStock.TryPick(System.GetUnixTime()))
 			return;
 
-		m_iRemainingApples--;
 		player.LRP_AddPickedApple();
-
 		Print(string.Format("[LeafRP] Apple picked. Tree remaining=%1, player total=%2.",
-			m_iRemainingApples, player.LRP_GetPickedAppleCount()), LogLevel.NORMAL);
+			m_LRPStock.GetRemaining(), player.LRP_GetPickedAppleCount()), LogLevel.NORMAL);
 	}
 
 	override bool HasLocalEffectOnlyScript()
 	{
-		// Phase 1 is a local gameplay smoke test, NOT an MP economy system.
+		// A real multiplayer economy will require server-authoritative stock.
 		return true;
 	}
 }

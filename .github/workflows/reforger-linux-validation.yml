@@ -31,6 +31,19 @@ jobs:
         shell: bash
         run: bash scripts/validate-reforger-linux.sh
 
+      - name: Run apple harvesting autotests
+        shell: bash
+        run: bash scripts/run-reforger-autotests.sh
+
+      - name: Upload Reforger autotest results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: apple-autotest-results
+          path: ${{ runner.temp }}/reforger-autotests/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload Workbench diagnostic logs
         if: always()
         uses: actions/upload-artifact@v6
