@@ -55,6 +55,19 @@ After merging, the regular `main`-branch GitHub Actions workflow will execute **
 - Test case fail: open `junit.xml`, which lists failing assertions.
 - No fresh JUnit report: the run is **not** counted as passing.
 
+## Troubleshooting: apple interaction disappeared after refactor
+
+The initial refactor checked whether its runtime stock object existed inside `CanBeShownScript` and hid the action if it did not. The updated action initializes its stock on first use/query and logs stock initialization and empty-tree visibility decisions.
+
+1. Confirm the **same playable sub-scene** and saved editable tree prefab are loaded in Workbench; the locally authored `.et` prefab and test world were not committed to the Git repository.
+2. On the tree's `ActionsManagerComponent`, confirm the action is still **LRP_PickAppleUserAction**, its parent context still matches `LRP_ApplePick`, and the context is positioned near the trunk.
+3. In the action's properties, check **Number of apples available per harvest** (should be `5`, not `0`) and **Regrow seconds** (start with `10` for rapid testing).
+4. Reopen/reload the world after recompiling scripts. Approach the tree as the controlled soldier.
+5. Search the **live gameplay** `script.log` for `[LeafRP] Apple action`. If it says `starting=0`, fix the prefab's serialized value. If it says `hidden: remaining=0`, the tree is currently depleted.
+6. If there are **no** `Apple action` logs, Workbench is probably not instantiating the action at all; investigate whether the edited prefab, scenario sub-scene, action context or mod project is loaded.
+
+Our current native automated tests verify pure harvest/regrowth logic, **not** actual prefab wiring or whether Workbench displays the action in the UI. A prefab-level integration test requires committing the tree and test world to Git.
+
 ## What remains
 
 - Testing the player/tree action in a real scenario after this refactor.
