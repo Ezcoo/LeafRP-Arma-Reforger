@@ -3,8 +3,7 @@ Tree : "{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_dome
   ActionsManagerComponent "{6A9D61EBB9224BC7}" {
    additionalActions {
     LRP_PickAppleUserAction "{6A9D61EBA16B6CE4}" {
-     ParentContextList {
-      "LRP_ApplePick"
+     ParentContextList +{
      }
      ActionTitle "Pick apples"
     }
@@ -12,4 +11,31 @@ Tree : "{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_dome
   }
  }
  coords 2058.867 0 1860.906
+}
+SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastructure/Naval/Piers/PierWooden_01_10m.et" {
+ components {
+  ActionsManagerComponent "{6A9EB95DADF99161}" {
+   ActionContexts {
+    UserActionContext "{6A9EB95DA27382CB}" {
+     ContextName "LRP_FishingSpot"
+     Position PointInfo "{6A9EB95D9B47A871}" {
+      Offset 0 2.3 0
+     }
+     Radius 2
+    }
+   }
+   additionalActions {
+    LRP_VirtualFishingUserAction "{6A9EB95DE9FF6310}" {
+     ParentContextList {
+      "LRP_FishingSpot"
+     }
+     ActionTitle "Fish"
+     VisibilityRange 3
+     Duration 5
+    }
+   }
+  }
+ }
+ coords 1867.215 -0.3 1540.088
+ angles 0 -48.8 0
 }
