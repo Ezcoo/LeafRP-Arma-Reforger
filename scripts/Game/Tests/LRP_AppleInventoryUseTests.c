@@ -1,5 +1,6 @@
 // Test the actual Inventory -> Use call and wait until Reforger finishes
 // removing precisely the selected Apple from the character inventory.
+// Also reproduce the UI's use-after-return access that previously crashed.
 #ifdef ENABLE_DIAG
 
 [Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 20)]
@@ -93,6 +94,17 @@ class LRP_TEST_AppleHarvest_EatUsingInventoryUse : SCR_AutotestCaseBase
 		AssertTrue(accepted, "Inventory Use must accept consuming an Apple");
 		if (!accepted)
 			return true;
+
+		// CRASH REGRESSION: vanilla SCR_InventorySlotUI.UseItem accesses
+		// item.FindComponent AFTER calling storage.UseItem. It must still
+		// be alive when the function returns, before deferred deletion.
+		AssertTrue(m_Inventory.Contains(m_FirstApple), "Apple must remain alive until inventory UI returns");
+		AssertTrue(m_FirstApple.FindComponent(SCR_ConsumableItemComponent) != null,
+			"Inventory UI must still be able to access item components after UseItem returns");
+
+		// Repeated use must not queue another deletion of the same Apple.
+		AssertTrue(storage.UseItem(m_FirstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY),
+			"A duplicate Use should be safely ignored while Apple is pending");
 
 		m_bUseRequested = true;
 		return false;
