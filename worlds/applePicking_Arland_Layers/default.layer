@@ -14,28 +14,28 @@ Tree : "{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_dome
 }
 SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastructure/Naval/Piers/PierWooden_01_10m.et" {
  components {
-  ActionsManagerComponent "{6A9EB95B0C3E43A3}" {
+  ActionsManagerComponent "{6A9EB95DADF99161}" {
    ActionContexts {
-    UserActionContext "{6A9EB95B7F96197B}" {
-     ContextName "LPR_FishingSpot"
-     Position PointInfo "{6A9EB95B703CF10E}" {
-      Offset 0 2 0
+    UserActionContext "{6A9EB95DA27382CB}" {
+     ContextName "LRP_FishingSpot"
+     Position PointInfo "{6A9EB95D9B47A871}" {
+      Offset 0 2.3 0
      }
-     Radius 2.12
+     Radius 2
     }
    }
    additionalActions {
-    LRP_VirtualFishingUserAction "{6A9EB95B4EF4DC40}" {
+    LRP_VirtualFishingUserAction "{6A9EB95DE9FF6310}" {
      ParentContextList {
-      "LPR_FishingSpot"
+      "LRP_FishingSpot"
      }
      ActionTitle "Fish"
      VisibilityRange 3
-     Duration 15
+     Duration 5
     }
    }
   }
  }
- coords 1863.931 -0.525 1537.352
- angles 0 -58.3 0
+ coords 1867.215 -0.3 1540.088
+ angles 0 -48.8 0
 }

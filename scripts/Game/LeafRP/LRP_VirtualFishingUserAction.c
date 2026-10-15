@@ -1,12 +1,22 @@
-// LeafRP virtual fishing v0.1.
-// Attach this action to an ActionsManagerComponent on an existing coastal
-// scene entity. Set its hold/action duration to 15 seconds in Workbench.
-// No new models, equipment, inventory items or shoreline detection required.
+// LeafRP virtual fishing v0.2.
+// Existing 15-second action duration remains configured on the fishing
+// spot's ActionsManagerComponent in Workbench. No physical fish items.
 //
-// Prototype limitation: results and UI are local to the interacting player.
-// Do not treat catches as server-validated or persistent economy items.
+// Local prototype only: these static statistics are shared by fishing spots
+// on this client, and last only as long as this script runtime is loaded.
+// Do not treat them as replicated, per-player server data or persistence.
 class LRP_VirtualFishingUserAction : ScriptedUserAction
 {
+	protected static int s_iCatchCount;
+	protected static int s_iTotalWeightDecigrams;
+	protected static int s_iBiggestWeightDecigrams;
+
+	// Each unit here is 0.1 kg, despite the legacy 'Decigrams' field name.
+	protected static string LRP_FormatWeight(int tenthsKg)
+	{
+		return string.Format("%1.%2 kg", tenthsKg / 10, tenthsKg % 10);
+	}
+
 	override bool GetActionNameScript(out string outName)
 	{
 		outName = "Fish";
@@ -32,24 +42,55 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		if (!CanBePerformedScript(pUserEntity))
 			return;
 
-		// PerformAction is called after the configured hold duration completes.
-		// Math.RandomInt's upper bound is exclusive: 0..69 = 70% success.
-		int roll = Math.RandomInt(0, 100);
-		if (roll < 70)
-		{
-			Print("[LeafRP] Virtual fishing: caught a fish.", LogLevel.NORMAL);
-			SCR_HintManagerComponent.ShowCustomHint("You caught a fish! (Virtual catch)", "LeafRP Fishing", 4.0);
-		}
-		else
+		// The configured hold duration has completed at this point.
+		if (Math.RandomInt(0, 100) >= 70)
 		{
 			Print("[LeafRP] Virtual fishing: no bite.", LogLevel.NORMAL);
 			SCR_HintManagerComponent.ShowCustomHint("No bite this time. Try again!", "LeafRP Fishing", 4.0);
+			return;
 		}
+
+		// Conditional species chances on a successful catch:
+		// perch 50%, herring 35%, pike 15%.
+		int speciesRoll = Math.RandomInt(0, 100);
+		string species;
+		int weightTenthsKg;
+		if (speciesRoll < 50)
+		{
+			species = "Perch";
+			weightTenthsKg = Math.RandomInt(2, 17); // 0.2 - 1.6 kg
+		}
+		else if (speciesRoll < 85)
+		{
+			species = "Herring";
+			weightTenthsKg = Math.RandomInt(1, 7); // 0.1 - 0.6 kg
+		}
+		else
+		{
+			species = "Pike";
+			weightTenthsKg = Math.RandomInt(10, 121); // 1.0 - 12.0 kg
+		}
+
+		s_iCatchCount++;
+		s_iTotalWeightDecigrams += weightTenthsKg;
+		bool isRecord = weightTenthsKg > s_iBiggestWeightDecigrams;
+		if (isRecord)
+			s_iBiggestWeightDecigrams = weightTenthsKg;
+
+		string message = string.Format("Caught a %1 (%2)!\nCatches: %3 | Total: %4 | Biggest: %5",
+			species, LRP_FormatWeight(weightTenthsKg), s_iCatchCount,
+			LRP_FormatWeight(s_iTotalWeightDecigrams), LRP_FormatWeight(s_iBiggestWeightDecigrams));
+		if (isRecord)
+			message += "\nNew personal best this session!";
+
+		Print(string.Format("[LeafRP] Fishing catch: %1, weight=%2, catches=%3, total=%4, biggest=%5.",
+			species, LRP_FormatWeight(weightTenthsKg), s_iCatchCount,
+			LRP_FormatWeight(s_iTotalWeightDecigrams), LRP_FormatWeight(s_iBiggestWeightDecigrams)), LogLevel.NORMAL);
+		SCR_HintManagerComponent.ShowCustomHint(message, "LeafRP Fishing", 6.0);
 	}
 
 	override bool HasLocalEffectOnlyScript()
 	{
-		// This v0.1 prototype grants no real items or server-side rewards.
 		return true;
 	}
 }
