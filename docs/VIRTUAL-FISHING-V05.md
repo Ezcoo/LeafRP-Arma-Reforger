@@ -8,7 +8,7 @@ Prototype code is committed, but **NOT compiled or gameplay-tested** in Workbenc
 
 - `LRP_FishingInputPlayerController.c` subscribes to the `LRP_HookFish` input action when the local player takes control of a character; pressing it during the one-second bite window hooks the fish without requiring a contextual interaction.
 - `LRP_VirtualFishingUserAction.c` triggers `LRP_FISH_CAST_1` through `LRP_FISH_CAST_4` (random), `LRP_FISH_BITE` (on bite), and `LRP_FISH_REEL` (on successful hook) via the fishing spot's SoundComponent.
-- The 5–120 second random wait, one-second reaction, 5 m radius and v0.3 catch statistics/rare finds are unchanged.
+- The 5–10 second random wait, one-second reaction, 5 m radius and v0.3 catch statistics/rare finds are unchanged.
 - `LRP_HookFishUserAction` remains as a fallback interaction during testing.
 
 ## Workbench input configuration required
@@ -47,3 +47,7 @@ Bohemia Input Manager: https://community.bistudio.com/wiki/Arma_Reforger:Input_M
 Bohemia audio guide: https://reforger.armaplatform.com/news/modding-boot-camp-7-audio
 
 Bohemia SoundComponent: https://community.bistudio.com/wiki/Arma_Reforger:Audio:_Sound_Components
+
+## Testing temporary timing
+
+For testing only, bite waits are now **5–10 seconds**; the **one-second hook window remains unchanged**. Check Workbench logs for `Registered fishing hook input listener`, `Fishing BITE event`, and `LRP_HookFish key action received`. If the bite event occurs but the key action log does not, inspect registration, active input configuration/context, and conflicts. If the key log occurs but no catch follows, check window timing and 5 m distance validation. Do not claim the key is fixed until tested.
