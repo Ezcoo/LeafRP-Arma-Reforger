@@ -3,7 +3,7 @@ name: Validate Reforger scripts (Linux)
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/apple-autotests]
+    branches: [main]
     paths:
       - "Scripts/**"
       - "scripts/**"
