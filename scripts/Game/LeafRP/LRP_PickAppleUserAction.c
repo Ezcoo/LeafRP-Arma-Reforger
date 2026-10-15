@@ -12,21 +12,30 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 	protected int m_iRegrowSeconds;
 
 	protected ref LRP_AppleHarvestStock m_LRPStock;
+	protected bool m_bLRPLoggedEmptyTree;
+
+	// Actions may be queried for visibility before their Init callback has
+	// initialized our runtime-only stock object. Avoid silently hiding them.
+	protected void LRP_EnsureStock()
+	{
+		if (m_LRPStock)
+			return;
+
+		m_LRPStock = new LRP_AppleHarvestStock();
+		m_LRPStock.Reset(m_iStartingApples, m_iRegrowSeconds);
+		Print(string.Format("[LeafRP] Apple action stock initialized: starting=%1, remaining=%2, regrow=%3s.",
+			m_iStartingApples, m_LRPStock.GetRemaining(), m_iRegrowSeconds), LogLevel.NORMAL);
+	}
 
 	override void Init(IEntity pOwnerEntity, GenericComponent pManagerComponent)
 	{
 		super.Init(pOwnerEntity, pManagerComponent);
-		m_LRPStock = new LRP_AppleHarvestStock();
-		m_LRPStock.Reset(m_iStartingApples, m_iRegrowSeconds);
-		Print(string.Format("[LeafRP] Apple tree initialized with %1 apples, regrowth %2s.",
-			m_LRPStock.GetRemaining(), m_iRegrowSeconds), LogLevel.NORMAL);
+		LRP_EnsureStock();
 	}
 
 	override bool GetActionNameScript(out string outName)
 	{
-		if (!m_LRPStock)
-			return false;
-
+		LRP_EnsureStock();
 		m_LRPStock.Update(System.GetUnixTime());
 		outName = string.Format("Pick apple (%1 left)", m_LRPStock.GetRemaining());
 		return true;
@@ -34,11 +43,25 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 
 	override bool CanBeShownScript(IEntity user)
 	{
-		if (!m_LRPStock || !ChimeraCharacter.Cast(user))
+		if (!ChimeraCharacter.Cast(user))
 			return false;
 
+		LRP_EnsureStock();
 		m_LRPStock.Update(System.GetUnixTime());
-		return m_LRPStock.GetRemaining() > 0;
+
+		if (m_LRPStock.GetRemaining() <= 0)
+		{
+			if (!m_bLRPLoggedEmptyTree)
+			{
+				Print(string.Format("[LeafRP] Apple action hidden: remaining=%1, starting=%2, regrowAt=%3.",
+					m_LRPStock.GetRemaining(), m_iStartingApples, m_LRPStock.GetRegrowAt()), LogLevel.NORMAL);
+				m_bLRPLoggedEmptyTree = true;
+			}
+			return false;
+		}
+
+		m_bLRPLoggedEmptyTree = false;
+		return true;
 	}
 
 	override bool CanBePerformedScript(IEntity user)
