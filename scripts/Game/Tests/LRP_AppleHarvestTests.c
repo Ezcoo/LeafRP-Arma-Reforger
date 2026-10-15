@@ -254,4 +254,94 @@ class LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory : SCR_Autotest
 	}
 }
 
+// The Apple must be a native consumable gadget with a delete-on-use
+// effect, rather than just an inventory item labelled "food".
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 20)]
+class LRP_TEST_AppleHarvest_AppleIsEdible : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_ConsumablePrefab()
+	{
+		Resource prefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
+		AssertTrue(prefab.IsValid(), "Apple prefab must load");
+		if (!prefab.IsValid())
+			return;
+
+		IEntity apple = GetGame().SpawnEntityPrefab(prefab, GetGame().GetWorld());
+		AssertTrue(apple != null, "Apple item must spawn");
+		if (!apple)
+			return;
+
+		SCR_ConsumableItemComponent consumable = SCR_ConsumableItemComponent.Cast(apple.FindComponent(SCR_ConsumableItemComponent));
+		AssertTrue(consumable != null, "Apple must have a native consumable item component");
+		if (consumable)
+		{
+			AssertTrue(consumable.GetType() == EGadgetType.CONSUMABLE, "Apple must be a consumable gadget");
+			AssertTrue(consumable.GetAnimVariable() != EGadgetAnimVariable.NONE, "Apple must have a valid vanilla gadget animation variable");
+			AssertTrue((consumable.GetUseMask() & SCR_EUseContext.FROM_INVENTORY) != 0, "Apple must be usable from inventory");
+			LRP_ConsumableEffectEatApple effect = LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect());
+			AssertTrue(effect != null, "Apple must have its custom eating effect");
+			if (effect)
+				AssertTrue(effect.GetDeleteOnUse(), "An eaten apple must be removed after use");
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(apple);
+	}
+}
+
+// Eating should remain possible at full health and only target the eater.
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 25)]
+class LRP_TEST_AppleHarvest_CanEatAtFullHealth : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_EatingRequirements()
+	{
+		Resource applePrefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
+		Resource characterPrefab = Resource.Load("{26A9756790131354}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et");
+		AssertTrue(applePrefab.IsValid(), "Apple prefab must load");
+		AssertTrue(characterPrefab.IsValid(), "Vanilla character prefab must load");
+		if (!applePrefab.IsValid() || !characterPrefab.IsValid())
+			return;
+
+		IEntity apple = GetGame().SpawnEntityPrefab(applePrefab, GetGame().GetWorld());
+		IEntity character = GetGame().SpawnEntityPrefab(characterPrefab, GetGame().GetWorld());
+		AssertTrue(apple != null && character != null, "Apple and soldier must spawn");
+		if (apple && character)
+		{
+			SCR_ConsumableItemComponent consumable = SCR_ConsumableItemComponent.Cast(apple.FindComponent(SCR_ConsumableItemComponent));
+			if (consumable)
+			{
+				LRP_ConsumableEffectEatApple effect = LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect());
+				AssertTrue(effect != null, "Eating effect must exist");
+				if (effect)
+				{
+					AssertTrue(effect.CanApplyEffect(character, character), "Inventory UI must allow eating at full health");
+					// Important: vanilla SCR_ConsumableItemComponent.ActivateAction
+					// calls CanApplyEffect(ownerCharacter, appleItem), NOT
+					// CanApplyEffect(ownerCharacter, ownerCharacter). This exact
+					// argument mismatch caused eating to silently do nothing.
+					AssertTrue(effect.CanApplyEffect(character, apple), "Native gadget ActivateAction must allow character/item arguments");
+					AssertTrue(!effect.CanApplyEffect(apple, character), "Eating must not target an unrelated entity");
+
+					// The original tests only verified that the effect existed. Check
+					// that the vanilla animation graph has a bound use command.
+					ItemUseParameters params = effect.GetAnimationParameters(apple, character);
+					AssertTrue(params != null, "Eating must produce actual item-use parameters");
+					if (params)
+					{
+						AssertTrue(params.GetEntity() == apple, "Animation must target the Apple inventory item");
+						AssertTrue(params.GetCommandID() >= 0, "Eating must bind a valid self-use animation command");
+						AssertTrue(params.GetMaxAnimLength() > 0, "Eating animation must have a nonzero duration");
+					}
+				}
+			}
+		}
+
+		if (apple)
+			SCR_EntityHelper.DeleteEntityAndChildren(apple);
+		if (character)
+			SCR_EntityHelper.DeleteEntityAndChildren(character);
+	}
+}
+
 #endif

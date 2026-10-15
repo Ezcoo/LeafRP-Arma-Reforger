@@ -2,6 +2,7 @@
 // Mesh uses the vanilla M67 grenade model as an easily recognizable TEMPORARY
 // round placeholder. The item is NOT a grenade and has no explosive logic.
 // Replace MeshObject with an apple model when a dependency-free asset is ready.
+// Native edible gadget: inventory Use action runs LRP_ConsumableEffectEatApple.
 GenericEntity : "{2E0E3D7D1DD0FF8F}Prefabs/Weapons/Core/Attachment_Base.et" {
  ID "7D12171C82B54551"
  components {
@@ -16,8 +17,20 @@ GenericEntity : "{2E0E3D7D1DD0FF8F}Prefabs/Weapons/Core/Attachment_Base.et" {
      SizeSetupStrategy Manual
      ItemVolume 500
     }
+    ItemAnimationAttributes ItemAnimationAttributes "{7D12171C82B54558}" {
+     AnimationInstance "{4FCBEA45CAEBC9C0}anims/workspaces/player/player_main_1h.asi"
+     AnimationIKPose "{3E5C93E85F05C6B5}Assets/Weapons/Grenades/RGD5/anims/anm/p_rgd5_ik.anm"
+    }
     CommonItemType "FOOD"
     m_Size SLOT_1x1
+   }
+  }
+  SCR_ConsumableItemComponent "{7D12171C82B54556}" {
+   m_eAnimVariable ADRIANOV
+   m_eUseMask 7
+   m_ConsumableEffect LRP_ConsumableEffectEatApple "{7D12171C82B54557}" {
+    m_bDeleteOnUse 1
+    m_fApplyToSelfDuration 1.5
    }
   }
   MeshObject "{52D0FA2611B72DC8}" {
