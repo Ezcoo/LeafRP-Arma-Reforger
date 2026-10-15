@@ -25,7 +25,7 @@ This feature uses **vanilla Arma Reforger's built-in consumable gadget pipeline*
 
 The native `LRP_TEST_AppleHarvestSuite` checks the consumable component, delete-on-use effect, eligibility for healthy soldiers, inventory-use mask, gadget animation mode, and that `GetAnimationParameters` binds a valid self-use animation command.
 
-**CI verified:** [11/11 native Reforger Autotests passed](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38690295814) with no script compilation errors, test failures, or skipped tests. These tests do **not** simulate the player's inventory button presses or the completed use animation; the manual acceptance test covers those.
+**CI verified after the animation fix:** [11/11 native Reforger Autotests passed](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38691683556) with no script compilation errors, test failures, or skipped tests. These tests do **not** simulate the player's inventory button presses or the completed use animation; the manual acceptance test covers those.
 
 ## If pressing Use appears to do nothing
 
