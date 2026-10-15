@@ -87,11 +87,13 @@ expected = {
     "LRP_TEST_AppleHarvest_EmptyRejectsHarvest",
     "LRP_TEST_AppleHarvest_RegrowsAfterDelay",
     "LRP_TEST_AppleHarvest_DisabledRegrowth",
+    "LRP_TEST_AppleHarvest_TreePrefabRegistersContext",
+    "LRP_TEST_AppleHarvest_TreeActionVisibleToCharacter",
 }
 missing = [name for name in sorted(expected) if not any(name in actual for actual in names)]
 print(f"[autotest-ci] JUnit: {len(cases)} testcases, {len(errors)} failures/errors, {len(skipped)} skipped")
 if errors or skipped or missing:
     print(f"[autotest-ci] Missing expected tests: {missing}", file=sys.stderr)
     sys.exit(1)
-print("[autotest-ci] All expected apple stock tests passed")
+print("[autotest-ci] All expected apple harvest and prefab interaction tests passed")
 PY
