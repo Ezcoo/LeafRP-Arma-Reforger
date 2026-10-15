@@ -35,7 +35,7 @@ set +e
   cd "$(dirname "$GAME")" || exit 2
   timeout --signal=TERM --kill-after=5s 150s "$PROTON" waitforexitandrun "$GAME" \
     -addonsDir "$(to_win "$(dirname "$WORKSPACE")")" \
-    -addons RPTEST \
+    -addons LEAFRP \
     -gproj "$(to_win "$WORKSPACE/addon.gproj")" \
     -autotest "$SUITE" \
     -window -screenWidth 1000 -screenHeight 700 -noFocus -forceUpdate
@@ -55,7 +55,7 @@ if [[ -d "$MY_GAMES" ]]; then
   done < <(find "$MY_GAMES" -type f \( -name '*.log' -o -name 'junit.xml' \) -newer "$STARTED" -print0)
 fi
 echo "[autotest-ci] Relevant game diagnostics:"
-grep -RinE 'autotest|junit|script.{0,20}error|invalid.{0,40}test|failed to compile|addon not|RPTEST|LRP_TEST_' "$OUTPUT" --include='*.log' | tail -n 55 || true
+grep -RinE 'autotest|junit|script.{0,20}error|invalid.{0,40}test|failed to compile|addon not|LEAFRP|LRP_TEST_' "$OUTPUT" --include='*.log' | tail -n 55 || true
 
 # Verify actual test execution, never trust a zero exit status by itself.
 REPORT="$(find "$OUTPUT" -type f -name 'junit.xml' -print -quit)"
