@@ -1,4 +1,4 @@
-// LeafRP virtual fishing v0.4.
+// LeafRP virtual fishing v0.5.
 // Start Fishing and Hook Fish are instant actions. The randomized waiting
 // period and 1-second hook window run in the local script. No physical items.
 //
@@ -15,6 +15,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 	protected static int s_iFishingState; // 0 idle, 1 waiting, 2 bite
 	protected static int s_iAttemptToken;
 	protected static vector s_vFishingOrigin;
+	protected static SoundComponent s_FishingSound;
 
 	// Each unit here is 0.1 kg, despite the legacy 'Decigrams' field name.
 	protected static string LRP_FormatWeight(int tenthsKg)
@@ -57,6 +58,14 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		return (character.GetOrigin() - s_vFishingOrigin).Length() <= 5.0;
 	}
 
+	static void LRP_PlayFishingSound(string soundEvent)
+	{
+		if (s_FishingSound)
+			s_FishingSound.SoundEvent(soundEvent);
+		else
+			Print("[LeafRP] Fishing sound unavailable: configure a SoundComponent and audio project.", LogLevel.WARNING);
+	}
+
 	static void LRP_EndAttempt()
 	{
 		s_iFishingState = 0;
@@ -96,8 +105,8 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 
 		s_iFishingState = 2;
 		Print("[LeafRP] Fishing BITE event: hook within 1 second. Sound cue hook point.", LogLevel.NORMAL);
-		// TODO: Play the user's bite sound here once imported as a sound event.
-		SCR_HintManagerComponent.ShowCustomHint("BITE! Hook the fish NOW!", "LeafRP Fishing", 1.0);
+		LRP_PlayFishingSound("LRP_FISH_BITE");
+		SCR_HintManagerComponent.ShowCustomHint("BITE! Press your Hook Fish key NOW!", "LeafRP Fishing", 1.0);
 		GetGame().GetCallqueue().CallLater(LRP_BiteExpired, 1000, false, token);
 	}
 
@@ -115,6 +124,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 	{
 		if (s_iFishingState != 2 || !LRP_IsWithinRange())
 			return;
+		LRP_PlayFishingSound("LRP_FISH_REEL");
 		LRP_EndAttempt();
 		LRP_ResolveCatch();
 	}
@@ -144,12 +154,14 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		if (!CanBePerformedScript(pUserEntity) || LRP_IsFishing())
 			return;
 		s_vFishingOrigin = pUserEntity.GetOrigin();
+		s_FishingSound = SoundComponent.Cast(pOwnerEntity.FindComponent(SoundComponent));
 		s_iFishingState = 1;
 		s_iAttemptToken++;
 		int token = s_iAttemptToken;
 		int waitMs = Math.RandomInt(5000, 120001);
 		Print(string.Format("[LeafRP] Fishing started; waiting %1 milliseconds.", waitMs), LogLevel.NORMAL);
 		SCR_HintManagerComponent.ShowCustomHint("Waiting for a bite... Stay nearby!", "LeafRP Fishing", 3.0);
+		LRP_PlayFishingSound(string.Format("LRP_FISH_CAST_%1", Math.RandomInt(1, 5)));
 		GetGame().GetCallqueue().CallLater(LRP_CheckRange, 250, false, token);
 		GetGame().GetCallqueue().CallLater(LRP_Bite, waitMs, false, token);
 	}
