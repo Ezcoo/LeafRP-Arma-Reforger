@@ -3,7 +3,7 @@ name: Validate Reforger scripts (Linux)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/ci-retry-proton-startup]
     paths:
       - "Scripts/**"
       - "scripts/**"
@@ -26,6 +26,10 @@ jobs:
     steps:
       - name: Check out the committed mod
         uses: actions/checkout@v5
+
+      - name: Test Workbench startup crash retry decisions
+        shell: bash
+        run: bash scripts/test-reforger-validation-retry.sh
 
       - name: Validate with Workbench under Proton
         shell: bash
