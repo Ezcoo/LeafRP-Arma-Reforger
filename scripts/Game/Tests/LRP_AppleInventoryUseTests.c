@@ -1,50 +1,71 @@
-// Real end-to-end call-site test: Inventory UI sends UseItem(... FROM_INVENTORY).
-// This test reproduces the actual dispatch path instead of inspecting metadata.
+// Test the actual Inventory -> Use call and wait until Reforger finishes
+// removing precisely the selected Apple from the character inventory.
 #ifdef ENABLE_DIAG
 
-[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 30)]
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 20)]
 class LRP_TEST_AppleHarvest_EatUsingInventoryUse : SCR_AutotestCaseBase
 {
-	[TestStep(TestStage.Main)]
-	void Execute_UseInventoryApple()
+	protected IEntity m_Soldier;
+	protected IEntity m_FirstApple;
+	protected IEntity m_SecondApple;
+	protected InventoryStorageManagerComponent m_Inventory;
+	protected bool m_bUseRequested;
+
+	[TestStep(TestStage.Setup)]
+	void Setup_ResetTest()
 	{
+		m_Soldier = null;
+		m_FirstApple = null;
+		m_SecondApple = null;
+		m_Inventory = null;
+		m_bUseRequested = false;
+	}
+
+	// A bool Main step is polled every frame until it returns true.
+	[TestStep(TestStage.Main)]
+	bool Execute_UseInventoryApple()
+	{
+		if (m_bUseRequested)
+		{
+			// Do not confuse acceptance with success: verify that the selected
+			// Apple has actually gone from the managed inventory.
+			if (m_Inventory && m_Inventory.Contains(m_FirstApple))
+				return false;
+
+			AssertTrue(m_Inventory != null, "Inventory manager must remain valid");
+			if (m_Inventory)
+				AssertTrue(m_Inventory.Contains(m_SecondApple), "The other Apple must still be present after eating");
+			return true;
+		}
+
 		Resource soldierPrefab = Resource.Load("{26A9756790131354}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et");
 		Resource applePrefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
 		AssertTrue(soldierPrefab.IsValid() && applePrefab.IsValid(), "Soldier and Apple prefabs must load");
 		if (!soldierPrefab.IsValid() || !applePrefab.IsValid())
-			return;
+			return true;
 
-		IEntity soldier = GetGame().SpawnEntityPrefab(soldierPrefab, GetGame().GetWorld());
-		AssertTrue(soldier != null, "Soldier must spawn");
-		if (!soldier)
-			return;
+		m_Soldier = GetGame().SpawnEntityPrefab(soldierPrefab, GetGame().GetWorld());
+		AssertTrue(m_Soldier != null, "Soldier must spawn");
+		if (!m_Soldier)
+			return true;
 
-		InventoryStorageManagerComponent inventory = InventoryStorageManagerComponent.Cast(soldier.FindComponent(InventoryStorageManagerComponent));
-		SCR_InventoryStorageManagerComponent scrInventory = SCR_InventoryStorageManagerComponent.Cast(inventory);
+		m_Inventory = InventoryStorageManagerComponent.Cast(m_Soldier.FindComponent(InventoryStorageManagerComponent));
+		SCR_InventoryStorageManagerComponent scrInventory = SCR_InventoryStorageManagerComponent.Cast(m_Inventory);
 		AssertTrue(scrInventory != null, "Soldier must have a scripted inventory manager");
 		if (!scrInventory)
-		{
-			SCR_EntityHelper.DeleteEntityAndChildren(soldier);
-			return;
-		}
+			return true;
 
 		SCR_CharacterInventoryStorageComponent storage = scrInventory.GetCharacterStorage();
 		AssertTrue(storage != null, "Soldier must have native character inventory storage");
 		if (!storage)
-		{
-			SCR_EntityHelper.DeleteEntityAndChildren(soldier);
-			return;
-		}
+			return true;
 
-		// Spawn two physical apples directly into the native inventory.
 		ResourceName appleName = "{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et";
-		AssertTrue(inventory.TrySpawnPrefabToStorage(appleName), "First Apple must enter inventory");
-		AssertTrue(inventory.TrySpawnPrefabToStorage(appleName), "Second Apple must enter inventory");
+		AssertTrue(m_Inventory.TrySpawnPrefabToStorage(appleName), "First Apple must enter inventory");
+		AssertTrue(m_Inventory.TrySpawnPrefabToStorage(appleName), "Second Apple must enter inventory");
 
 		array<IEntity> items = {};
-		inventory.GetItems(items);
-		IEntity firstApple;
-		IEntity secondApple;
+		m_Inventory.GetItems(items);
 		foreach (IEntity found : items)
 		{
 			if (!found)
@@ -54,25 +75,34 @@ class LRP_TEST_AppleHarvest_EatUsingInventoryUse : SCR_AutotestCaseBase
 			if (!consumable || !LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect()))
 				continue;
 
-			if (!firstApple)
-				firstApple = found;
-			else if (!secondApple)
-				secondApple = found;
+			if (!m_FirstApple)
+				m_FirstApple = found;
+			else if (!m_SecondApple)
+				m_SecondApple = found;
 		}
 
-		AssertTrue(firstApple != null && secondApple != null, "Two distinct Apples must exist in inventory");
-		if (firstApple && secondApple)
-		{
-			AssertTrue(inventory.Contains(firstApple), "First Apple must be in soldier inventory");
-			AssertTrue(inventory.Contains(secondApple), "Second Apple must be in soldier inventory");
+		AssertTrue(m_FirstApple != null && m_SecondApple != null, "Two distinct Apples must be in the inventory");
+		if (!m_FirstApple || !m_SecondApple)
+			return true;
 
-			// The exact method and context used by the inventory Use button.
-			bool accepted = storage.UseItem(firstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY);
-			AssertTrue(accepted, "Inventory Use must accept and consume one Apple");
-			AssertTrue(inventory.Contains(secondApple), "Eating one Apple must not remove another Apple");
-		}
+		AssertTrue(m_Inventory.Contains(m_FirstApple), "First Apple must be in inventory");
+		AssertTrue(m_Inventory.Contains(m_SecondApple), "Second Apple must be in inventory");
 
-		SCR_EntityHelper.DeleteEntityAndChildren(soldier);
+		// Exactly the method and context used by Reforger's Inventory -> Use.
+		bool accepted = storage.UseItem(m_FirstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY);
+		AssertTrue(accepted, "Inventory Use must accept consuming an Apple");
+		if (!accepted)
+			return true;
+
+		m_bUseRequested = true;
+		return false;
+	}
+
+	[TestStep(TestStage.TearDown)]
+	void TearDown_DeleteCharacter()
+	{
+		if (m_Soldier)
+			SCR_EntityHelper.DeleteEntityAndChildren(m_Soldier);
 	}
 }
 
