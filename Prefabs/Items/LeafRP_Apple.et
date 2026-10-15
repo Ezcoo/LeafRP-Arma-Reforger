@@ -26,6 +26,7 @@ GenericEntity : "{2E0E3D7D1DD0FF8F}Prefabs/Weapons/Core/Attachment_Base.et" {
    }
   }
   SCR_ConsumableItemComponent "{7D12171C82B54556}" {
+   m_eAnimVariable ADRIANOV
    m_eUseMask 7
    m_ConsumableEffect LRP_ConsumableEffectEatApple "{7D12171C82B54557}" {
     m_bDeleteOnUse 1
