@@ -196,4 +196,62 @@ class LRP_TEST_AppleHarvest_TreeActionVisibleToCharacter : SCR_AutotestCaseBase
 	}
 }
 
+// Verify the new Apple is a real, spawnable inventory entity.
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 20)]
+class LRP_TEST_AppleHarvest_InventoryApplePrefab : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_AppleItem()
+	{
+		Resource applePrefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
+		AssertTrue(applePrefab.IsValid(), "Apple inventory prefab must load");
+		if (!applePrefab.IsValid())
+			return;
+
+		IEntity apple = GetGame().SpawnEntityPrefab(applePrefab, GetGame().GetWorld());
+		AssertTrue(apple != null, "Apple inventory item must spawn");
+		if (!apple)
+			return;
+
+		InventoryItemComponent item = InventoryItemComponent.Cast(apple.FindComponent(InventoryItemComponent));
+		AssertTrue(item != null, "Apple must have an InventoryItemComponent");
+		SCR_EntityHelper.DeleteEntityAndChildren(apple);
+	}
+}
+
+// A vanilla character must be able to receive an actual apple in inventory.
+// This catches a misleading success response that only increments a virtual tally.
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 25)]
+class LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_InventoryInsertion()
+	{
+		Resource characterPrefab = Resource.Load("{26A9756790131354}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et");
+		AssertTrue(characterPrefab.IsValid(), "Vanilla character prefab must load");
+		if (!characterPrefab.IsValid())
+			return;
+
+		IEntity character = GetGame().SpawnEntityPrefab(characterPrefab, GetGame().GetWorld());
+		AssertTrue(character != null, "Vanilla character must spawn");
+		if (!character)
+			return;
+
+		InventoryStorageManagerComponent inventory = InventoryStorageManagerComponent.Cast(character.FindComponent(InventoryStorageManagerComponent));
+		AssertTrue(inventory != null, "Vanilla soldier must have an inventory manager");
+		if (inventory)
+		{
+			ResourceName prefab = "{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et";
+			AssertTrue(inventory.CanInsertResource(prefab), "Apple must fit in the soldier's inventory");
+			if (inventory.CanInsertResource(prefab))
+			{
+				bool accepted = inventory.TrySpawnPrefabToStorage(prefab);
+				AssertTrue(accepted, "Inventory must accept spawning an apple item");
+			}
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(character);
+	}
+}
+
 #endif

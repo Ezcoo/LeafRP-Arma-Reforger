@@ -1,8 +1,8 @@
 // LeafRP apple picking. Attach to an ActionsManagerComponent on a placeable
 // apple-tree prefab (details in docs/APPLE-PICKING-PROTOTYPE.md).
 //
-// Phase 2: finite per-tree harvest and optional regrowth. Virtual apples only:
-// no physical inventory, persistence or multiplayer authority yet.
+// Phase 3: finite per-tree harvest, regrowth and physical inventory apples.
+// This prototype still uses local action state; multiplayer authority is future work.
 class LRP_PickAppleUserAction : ScriptedUserAction
 {
 	[Attribute("5", UIWidgets.EditBox, "Number of apples available per harvest")]
@@ -13,6 +13,12 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 
 	protected ref LRP_AppleHarvestStock m_LRPStock;
 	protected bool m_bLRPLoggedEmptyTree;
+
+	// Dedicated, vanilla-based LeafRP item prefab; NOT an external addon.
+	ResourceName LRP_GetAppleItemPrefab()
+	{
+		return "{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et";
+	}
 
 	// Actions may be queried for visibility before their Init callback has
 	// initialized our runtime-only stock object. Avoid silently hiding them.
@@ -70,7 +76,21 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 			return false;
 
 		SCR_PlayerController player = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		return player && player.GetControlledEntity() == user;
+		if (!player || player.GetControlledEntity() != user)
+			return false;
+
+		InventoryStorageManagerComponent inventory = InventoryStorageManagerComponent.Cast(user.FindComponent(InventoryStorageManagerComponent));
+		if (!inventory)
+			return false;
+
+		// Do not permit picking when there is no usable storage space.
+		if (!inventory.CanInsertResource(LRP_GetAppleItemPrefab()))
+		{
+			SetCannotPerformReason("Inventory full");
+			return false;
+		}
+
+		return true;
 	}
 
 	override void PerformAction(IEntity pOwnerEntity, IEntity pUserEntity)
@@ -78,13 +98,29 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 		if (!CanBePerformedScript(pUserEntity))
 			return;
 
-		SCR_PlayerController player = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		if (!player || !m_LRPStock.TryPick(System.GetUnixTime()))
+		InventoryStorageManagerComponent inventory = InventoryStorageManagerComponent.Cast(pUserEntity.FindComponent(InventoryStorageManagerComponent));
+		if (!inventory)
 			return;
 
-		player.LRP_AddPickedApple();
-		Print(string.Format("[LeafRP] Apple picked. Tree remaining=%1, player total=%2.",
-			m_LRPStock.GetRemaining(), player.LRP_GetPickedAppleCount()), LogLevel.NORMAL);
+		// In the current local-player prototype, stock does not change between
+		// the availability check and this synchronous inventory insertion.
+		// Never consume an apple unless the inventory operation is accepted.
+		if (!inventory.TrySpawnPrefabToStorage(LRP_GetAppleItemPrefab()))
+		{
+			Print("[LeafRP] Apple picking aborted: inventory insertion failed.", LogLevel.WARNING);
+			SCR_HintManagerComponent.ShowCustomHint("Could not put apple in inventory", "LeafRP", 3.0);
+			return;
+		}
+
+		if (!m_LRPStock.TryPick(System.GetUnixTime()))
+		{
+			Print("[LeafRP] Unexpected harvest state after successful item insertion.", LogLevel.ERROR);
+			return;
+		}
+
+		Print(string.Format("[LeafRP] Real apple item added to inventory. Tree remaining=%1.",
+			m_LRPStock.GetRemaining()), LogLevel.NORMAL);
+		SCR_HintManagerComponent.ShowCustomHint("Picked an apple! Check your inventory", "LeafRP", 3.0);
 	}
 
 	override bool HasLocalEffectOnlyScript()
@@ -94,28 +130,3 @@ class LRP_PickAppleUserAction : ScriptedUserAction
 	}
 }
 
-// Local, per-player tally (resets on session restart; not part of inventory).
-modded class SCR_PlayerController
-{
-	protected int m_iLRPPickedApples;
-
-	int LRP_GetPickedAppleCount()
-	{
-		return m_iLRPPickedApples;
-	}
-
-	void LRP_AddPickedApple()
-	{
-		m_iLRPPickedApples++;
-		Print(string.Format("[LeafRP] Player now holds %1 virtual apples.", m_iLRPPickedApples), LogLevel.NORMAL);
-
-		if (SCR_HintManagerComponent.GetInstance())
-		{
-			SCR_HintManagerComponent.ShowCustomHint(
-				string.Format("Picked an apple! Collected: %1", m_iLRPPickedApples),
-				"LeafRP",
-				3.0
-			);
-		}
-	}
-}
