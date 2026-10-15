@@ -44,11 +44,18 @@ RESULT=$?
 set -e
 
 echo "[autotest-ci] Game exit code: $RESULT"
-if [[ -d "$LOG_ROOT" ]]; then
+MY_GAMES="$PREFIX/pfx/drive_c/users/steamuser/Documents/My Games"
+if [[ -d "$MY_GAMES" ]]; then
+  echo "[autotest-ci] Fresh game/Workbench diagnostic files:"
   while IFS= read -r -d '' file; do
-    cp -- "$file" "$OUTPUT/$(basename "$file")" || true
-  done < <(find "$LOG_ROOT" -type f \( -name 'autotest*.log' -o -name 'junit.xml' \) -newer "$STARTED" -print0)
+    relative="${file#"$MY_GAMES"/}"
+    echo "[autotest-ci]   $relative"
+    mkdir -p "$OUTPUT/$(dirname "$relative")"
+    cp -- "$file" "$OUTPUT/$relative" || true
+  done < <(find "$MY_GAMES" -type f \( -name '*.log' -o -name 'junit.xml' \) -newer "$STARTED" -print0)
 fi
+echo "[autotest-ci] Relevant game diagnostics:"
+grep -RinE 'autotest|junit|script.{0,20}error|invalid.{0,40}test|failed to compile' "$OUTPUT" --include='*.log' | tail -n 55 || true
 
 # Verify actual test execution, never trust a zero exit status by itself.
 REPORT="$(find "$OUTPUT" -type f -name 'junit.xml' -print -quit)"
