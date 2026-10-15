@@ -22,7 +22,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 	// Shared by the Fish and View Fishing Stats actions on this client.
 	static string LRP_GetStatsText()
 	{
-		return string.Format("Fish: %1 | Total: %2\\nLargest: %3\\nOld boots: %4 | Golden perch: %5",
+		return string.Format("Fish: %1 | Total: %2\nLargest: %3\nOld boots: %4 | Golden perch: %5",
 			s_iCatchCount, LRP_FormatWeight(s_iTotalWeightDecigrams),
 			LRP_FormatWeight(s_iBiggestWeightDecigrams), s_iBootCount, s_iGoldenPerchCount);
 	}
@@ -67,7 +67,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		{
 			s_iBootCount++;
 			Print("[LeafRP] Virtual fishing: caught an old boot.", LogLevel.NORMAL);
-			SCR_HintManagerComponent.ShowCustomHint("You fished up an old boot!\\n" + LRP_GetStatsText(), "LeafRP Fishing", 6.0);
+			SCR_HintManagerComponent.ShowCustomHint("You fished up an old boot!\n" + LRP_GetStatsText(), "LeafRP Fishing", 6.0);
 			return;
 		}
 
