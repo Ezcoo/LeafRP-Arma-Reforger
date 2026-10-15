@@ -315,7 +315,12 @@ class LRP_TEST_AppleHarvest_CanEatAtFullHealth : SCR_AutotestCaseBase
 				AssertTrue(effect != null, "Eating effect must exist");
 				if (effect)
 				{
-					AssertTrue(effect.CanApplyEffect(character, character), "Healthy soldier must be allowed to eat an apple");
+					AssertTrue(effect.CanApplyEffect(character, character), "Inventory UI must allow eating at full health");
+					// Important: vanilla SCR_ConsumableItemComponent.ActivateAction
+					// calls CanApplyEffect(ownerCharacter, appleItem), NOT
+					// CanApplyEffect(ownerCharacter, ownerCharacter). This exact
+					// argument mismatch caused eating to silently do nothing.
+					AssertTrue(effect.CanApplyEffect(character, apple), "Native gadget ActivateAction must allow character/item arguments");
 					AssertTrue(!effect.CanApplyEffect(apple, character), "Eating must not target an unrelated entity");
 
 					// The original tests only verified that the effect existed. Check
