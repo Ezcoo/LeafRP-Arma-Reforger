@@ -277,6 +277,8 @@ class LRP_TEST_AppleHarvest_AppleIsEdible : SCR_AutotestCaseBase
 		if (consumable)
 		{
 			AssertTrue(consumable.GetType() == EGadgetType.CONSUMABLE, "Apple must be a consumable gadget");
+			AssertTrue(consumable.GetAnimVariable() != EGadgetAnimVariable.NONE, "Apple must have a valid vanilla gadget animation variable");
+			AssertTrue((consumable.GetUseMask() & SCR_EUseContext.FROM_INVENTORY) != 0, "Apple must be usable from inventory");
 			LRP_ConsumableEffectEatApple effect = LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect());
 			AssertTrue(effect != null, "Apple must have its custom eating effect");
 			if (effect)
@@ -315,6 +317,17 @@ class LRP_TEST_AppleHarvest_CanEatAtFullHealth : SCR_AutotestCaseBase
 				{
 					AssertTrue(effect.CanApplyEffect(character, character), "Healthy soldier must be allowed to eat an apple");
 					AssertTrue(!effect.CanApplyEffect(apple, character), "Eating must not target an unrelated entity");
+
+					// The original tests only verified that the effect existed. Check
+					// that the vanilla animation graph has a bound use command.
+					ItemUseParameters params = effect.GetAnimationParameters(apple, character);
+					AssertTrue(params != null, "Eating must produce actual item-use parameters");
+					if (params)
+					{
+						AssertTrue(params.GetEntity() == apple, "Animation must target the Apple inventory item");
+						AssertTrue(params.GetCommandID() >= 0, "Eating must bind a valid self-use animation command");
+						AssertTrue(params.GetMaxAnimLength() > 0, "Eating animation must have a nonzero duration");
+					}
 				}
 			}
 		}
