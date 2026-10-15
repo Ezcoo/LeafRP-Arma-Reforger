@@ -1,6 +1,6 @@
-// LeafRP virtual fishing v0.3.
-// Existing 15-second action duration remains configured on the fishing
-// spot's ActionsManagerComponent in Workbench. No physical fish items.
+// LeafRP virtual fishing v0.4.
+// Start Fishing and Hook Fish are instant actions. The randomized waiting
+// period and 1-second hook window run in the local script. No physical items.
 //
 // Local prototype only: these static statistics are shared by fishing spots
 // on this client, and last only as long as this script runtime is loaded.
@@ -12,6 +12,9 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 	protected static int s_iBiggestWeightDecigrams;
 	protected static int s_iBootCount;
 	protected static int s_iGoldenPerchCount;
+	protected static int s_iFishingState; // 0 idle, 1 waiting, 2 bite
+	protected static int s_iAttemptToken;
+	protected static vector s_vFishingOrigin;
 
 	// Each unit here is 0.1 kg, despite the legacy 'Decigrams' field name.
 	protected static string LRP_FormatWeight(int tenthsKg)
@@ -27,15 +30,104 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 			LRP_FormatWeight(s_iBiggestWeightDecigrams), s_iBootCount, s_iGoldenPerchCount);
 	}
 
+
+	static bool LRP_IsWaiting()
+	{
+		return s_iFishingState == 1;
+	}
+
+	static bool LRP_HasBite()
+	{
+		return s_iFishingState == 2;
+	}
+
+	static bool LRP_IsFishing()
+	{
+		return s_iFishingState != 0;
+	}
+
+	static bool LRP_IsWithinRange()
+	{
+		SCR_PlayerController player = SCR_PlayerController.Cast(GetGame().GetPlayerController());
+		if (!player)
+			return false;
+		IEntity character = player.GetControlledEntity();
+		if (!character || !ChimeraCharacter.Cast(character))
+			return false;
+		return (character.GetOrigin() - s_vFishingOrigin).Length() <= 5.0;
+	}
+
+	static void LRP_EndAttempt()
+	{
+		s_iFishingState = 0;
+		s_iAttemptToken++;
+	}
+
+	static void LRP_CheckRange(int token)
+	{
+		if (token != s_iAttemptToken || !LRP_IsFishing())
+			return;
+		if (!LRP_IsWithinRange())
+		{
+			Print("[LeafRP] Fishing cancelled: moved too far or lost character.", LogLevel.NORMAL);
+			SCR_HintManagerComponent.ShowCustomHint("Fishing cancelled: moved too far away.", "LeafRP Fishing", 3.0);
+			LRP_EndAttempt();
+			return;
+		}
+		GetGame().GetCallqueue().CallLater(LRP_CheckRange, 250, false, token);
+	}
+
+	static void LRP_Bite(int token)
+	{
+		if (token != s_iAttemptToken || s_iFishingState != 1)
+			return;
+		if (!LRP_IsWithinRange())
+		{
+			LRP_EndAttempt();
+			return;
+		}
+		if (Math.RandomInt(0, 100) >= 70)
+		{
+			Print("[LeafRP] Fishing: no bite this time.", LogLevel.NORMAL);
+			SCR_HintManagerComponent.ShowCustomHint("Nothing took the bait. Try again!", "LeafRP Fishing", 4.0);
+			LRP_EndAttempt();
+			return;
+		}
+
+		s_iFishingState = 2;
+		Print("[LeafRP] Fishing BITE event: hook within 1 second. Sound cue hook point.", LogLevel.NORMAL);
+		// TODO: Play the user's bite sound here once imported as a sound event.
+		SCR_HintManagerComponent.ShowCustomHint("BITE! Hook the fish NOW!", "LeafRP Fishing", 1.0);
+		GetGame().GetCallqueue().CallLater(LRP_BiteExpired, 1000, false, token);
+	}
+
+	static void LRP_BiteExpired(int token)
+	{
+		if (token != s_iAttemptToken || s_iFishingState != 2)
+			return;
+		Print("[LeafRP] Fishing: hook window expired.", LogLevel.NORMAL);
+		SCR_HintManagerComponent.ShowCustomHint("The fish got away!", "LeafRP Fishing", 3.0);
+		LRP_EndAttempt();
+	}
+
+	// Called only from the separate Hook Fish user action.
+	static void LRP_HookFish()
+	{
+		if (s_iFishingState != 2 || !LRP_IsWithinRange())
+			return;
+		LRP_EndAttempt();
+		LRP_ResolveCatch();
+	}
+
 	override bool GetActionNameScript(out string outName)
 	{
-		outName = "Fish";
+		outName = "Start Fishing";
 		return true;
 	}
 
 	override bool CanBeShownScript(IEntity user)
 	{
-		return ChimeraCharacter.Cast(user) != null;
+		return ChimeraCharacter.Cast(user) != null && !LRP_IsFishing();
 	}
 
 	override bool CanBePerformedScript(IEntity user)
@@ -49,17 +141,21 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 
 	override void PerformAction(IEntity pOwnerEntity, IEntity pUserEntity)
 	{
-		if (!CanBePerformedScript(pUserEntity))
+		if (!CanBePerformedScript(pUserEntity) || LRP_IsFishing())
 			return;
+		s_vFishingOrigin = pUserEntity.GetOrigin();
+		s_iFishingState = 1;
+		s_iAttemptToken++;
+		int token = s_iAttemptToken;
+		int waitMs = Math.RandomInt(5000, 120001);
+		Print(string.Format("[LeafRP] Fishing started; waiting %1 milliseconds.", waitMs), LogLevel.NORMAL);
+		SCR_HintManagerComponent.ShowCustomHint("Waiting for a bite... Stay nearby!", "LeafRP Fishing", 3.0);
+		GetGame().GetCallqueue().CallLater(LRP_CheckRange, 250, false, token);
+		GetGame().GetCallqueue().CallLater(LRP_Bite, waitMs, false, token);
+	}
 
-		// The configured hold duration has completed at this point.
-		if (Math.RandomInt(0, 100) >= 70)
-		{
-			Print("[LeafRP] Virtual fishing: no bite.", LogLevel.NORMAL);
-			SCR_HintManagerComponent.ShowCustomHint("No bite this time. Try again!", "LeafRP Fishing", 4.0);
-			return;
-		}
-
+	static void LRP_ResolveCatch()
+	{
 		// Rare finds are decided after the successful bite:
 		// 3% old boot (junk), 2% golden perch, otherwise ordinary fish.
 		int rareRoll = Math.RandomInt(0, 100);
