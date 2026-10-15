@@ -44,11 +44,11 @@ The `LRP_TEST_AppleHarvestSuite` now contains **12 tests** in total. The added `
 - Spawns a real soldier and two Apple entities in native inventory.
 - Obtains the soldier's actual `SCR_CharacterInventoryStorageComponent`.
 - Invokes `UseItem(firstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY)` — exactly the UI path.
-- Requires the operation to be accepted and verifies that the **other apple remains**.
+- Requires the operation to be accepted, **waits until the consumed Apple actually disappears** from the character's inventory, and verifies that the **other apple remains**.
 
 The existing consumable test also checks the native gadget's `CanApplyEffect(character, appleItem)` call convention.
 
-**Validation:** [12/12 game-side tests passed with zero failures](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38692771460), alongside successful Workbench compilation. Automated deletion-acceptance doesn't replace the manual inventory-UI smoke test.
+**Validation:** [12/12 game-side tests passed with zero failures](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38693065416), alongside successful Workbench compilation. The new test verifies actual removal after the engine completes the operation, but the in-game HUD still needs a manual smoke test.
 
 ## Limitations
 
