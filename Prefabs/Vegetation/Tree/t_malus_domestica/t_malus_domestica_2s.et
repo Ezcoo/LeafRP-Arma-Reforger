@@ -13,6 +13,14 @@ Tree : "{1C6F9AD2669C17F9}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_dome
    }
    additionalActions {
     LRP_PickAppleUserAction "{6A9D61EBA16B6CE4}" {
+     ParentContextList {
+      "LRP_ApplePick"
+     }
+     UIInfo UIInfo "{6A9D61EBED7C1455}" {
+      Name "Pick apple"
+     }
+     VisibilityRange 3
+     Duration 1
     }
    }
   }
