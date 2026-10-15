@@ -1,0 +1,32 @@
+// LeafRP inventory apple prototype. Everything inherits from the base game.
+// Mesh uses the vanilla M67 grenade model as an easily recognizable TEMPORARY
+// round placeholder. The item is NOT a grenade and has no explosive logic.
+// Replace MeshObject with an apple model when a dependency-free asset is ready.
+GenericEntity : "{2E0E3D7D1DD0FF8F}Prefabs/Weapons/Core/Attachment_Base.et" {
+ ID "7D12171C82B54551"
+ components {
+  InventoryItemComponent "{52627A1F45CD4EB6}" {
+   Attributes SCR_ItemAttributeCollection "{52627A1EBB0698FD}" {
+    ItemDisplayName UIInfo "{7D12171C82B54552}" {
+     Name "Apple"
+     Description "Freshly picked apple (prototype item)"
+    }
+    ItemPhysAttributes ItemPhysicalAttributes "{7D12171C82B54553}" {
+     Weight 0.15
+     SizeSetupStrategy Manual
+     ItemDimensions 8 8 8
+     ItemVolume 0.5
+    }
+    CommonItemType "FOOD"
+    m_Size SLOT_1x1
+   }
+  }
+  MeshObject "{52D0FA2611B72DC8}" {
+   Object "{A043E13BAC03CF2C}Assets/Weapons/Grenades/M67/Grenade_M67.xob"
+  }
+  RigidBody "{52D0FA2611B72DC4}" {
+   LayerPreset "ItemFireView"
+   ModelGeometry 1
+  }
+ }
+}
