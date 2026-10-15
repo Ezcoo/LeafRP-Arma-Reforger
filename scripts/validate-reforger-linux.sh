@@ -41,70 +41,116 @@ export STEAM_COMPAT_APP_ID=1874910
 export SteamAppId=1874910
 export SteamGameId=1874910
 
-mkdir -p "$LOG_OUTPUT"
-START_MARKER="$LOG_OUTPUT/validation-started.marker"
-touch "$START_MARKER"
+# Allow two retries (three launches total) for known Proton startup crashes.
+# No retry for compiler errors, missing logs without a crash signature, or
+# failures after Workbench has produced a script.log.
+MAX_ATTEMPTS="${REFORGER_WORKBENCH_MAX_ATTEMPTS:-3}"
+RETRY_DELAY="${REFORGER_WORKBENCH_RETRY_DELAY_SEC:-2}"
+[[ "$MAX_ATTEMPTS" =~ ^[123]$ ]] || fail "REFORGER_WORKBENCH_MAX_ATTEMPTS must be 1, 2 or 3."
+[[ "$RETRY_DELAY" =~ ^([0-9]|1[0-9]|2[0-9]|30)$ ]] || fail "REFORGER_WORKBENCH_RETRY_DELAY_SEC must be 0-30."
 
+mkdir -p "$LOG_OUTPUT"
 info "Validating Git checkout: $GPROJ"
 info "Base game addons: $GAME_ADDONS"
 info "Compiler diagnostics destination: $LOG_OUTPUT"
+info "Workbench startup attempts allowed: $MAX_ATTEMPTS"
 
-set +e
-(
-  cd -- "$(dirname "$WORKBENCH")" || exit 2
-  "$PROTON" waitforexitandrun "$WORKBENCH" \
-    -addonsDir "$GAME_ADDONS_WIN" \
-    -gproj "$GPROJ_WIN" \
-    -wbModule=ScriptEditor \
-    -run \
-    -validate \
-    -exitAfterInit
-)
-RESULT=$?
-set -e
+RESULT=1
+for (( ATTEMPT=1; ATTEMPT<=MAX_ATTEMPTS; ATTEMPT++ )); do
+  ATTEMPT_DIR="$LOG_OUTPUT/attempt-$ATTEMPT"
+  mkdir -p "$ATTEMPT_DIR"
+  START_MARKER="$ATTEMPT_DIR/started.marker"
+  touch "$START_MARKER"
 
-# Proton may return 0 even when Enfusion reports compilation errors.
-# Inspect the current session's script.log rather than trusting $? alone.
-SCRIPT_ERRORS=0
-LATEST_LOG=""
-if [[ -d "$LOG_ROOT" ]]; then
-  while IFS= read -r -d '' file; do
-    if [[ -z "$LATEST_LOG" || "$file" -nt "$LATEST_LOG" ]]; then
-      LATEST_LOG="$file"
-    fi
-  done < <(find "$LOG_ROOT" -type f -name '*.log' -newer "$START_MARKER" -print0 2>/dev/null)
-fi
+  info "Starting Workbench attempt $ATTEMPT/$MAX_ATTEMPTS"
 
-if [[ -n "$LATEST_LOG" ]]; then
-  LATEST_DIR="$(dirname "$LATEST_LOG")"
-  info "Workbench log session: $LATEST_DIR"
-  cp -a -- "$LATEST_DIR/." "$LOG_OUTPUT/"
+  # Tee captures allocator crashes even if Workbench fails before script.log
+  # exists. PIPESTATUS preserves Proton's code, rather than tee's exit code.
+  set +e
+  (
+    cd -- "$(dirname "$WORKBENCH")" || exit 2
+    "$PROTON" waitforexitandrun "$WORKBENCH" \
+      -addonsDir "$GAME_ADDONS_WIN" \
+      -gproj "$GPROJ_WIN" \
+      -wbModule=ScriptEditor \
+      -run \
+      -validate \
+      -exitAfterInit
+  ) 2>&1 | tee "$ATTEMPT_DIR/proton-output.log"
+  PROCESS_RESULT="${PIPESTATUS[0]}"
+  set -e
 
-  SCRIPT_LOG="$LATEST_DIR/script.log"
-  if [[ ! -f "$SCRIPT_LOG" ]]; then
-    info "ERROR: The latest Workbench session has no script.log; cannot verify compilation."
-    SCRIPT_ERRORS=1
-  elif grep -Eiq 'SCRIPT[[:space:]]*\(E\)|[Ss]cript validation failed|[Cc]an.t compile .*script module|\.c\([0-9]+\):[[:space:]]*error:' "$SCRIPT_LOG"; then
-    info "ERROR: Workbench reported Enforce Script compilation errors."
-    SCRIPT_ERRORS=1
-  else
-    info "No compiler errors found in the current Workbench script.log."
+  # Only inspect logs generated after THIS attempt began. Retaining one
+  # artifact directory per launch prevents stale successes from passing CI.
+  LATEST_LOG=""
+  if [[ -d "$LOG_ROOT" ]]; then
+    while IFS= read -r -d '' file; do
+      if [[ -z "$LATEST_LOG" || "$file" -nt "$LATEST_LOG" ]]; then
+        LATEST_LOG="$file"
+      fi
+    done < <(find "$LOG_ROOT" -type f -name '*.log' -newer "$START_MARKER" -print0 2>/dev/null)
   fi
 
-  info 'Potential compiler diagnostics:'
-  mapfile -d '' -t LOG_FILES < <(find "$LOG_OUTPUT" -type f -name '*.log' -print0)
+  SCRIPT_LOG_PRESENT=0
+  SCRIPT_ERRORS=1
+  if [[ -n "$LATEST_LOG" ]]; then
+    LATEST_DIR="$(dirname "$LATEST_LOG")"
+    info "Workbench log session (attempt $ATTEMPT): $LATEST_DIR"
+    cp -a -- "$LATEST_DIR/." "$ATTEMPT_DIR/"
+
+    SCRIPT_LOG="$LATEST_DIR/script.log"
+    if [[ -f "$SCRIPT_LOG" && "$SCRIPT_LOG" -nt "$START_MARKER" ]]; then
+      SCRIPT_LOG_PRESENT=1
+      if [[ ! -s "$SCRIPT_LOG" ]]; then
+        info "ERROR: Workbench script.log is empty; cannot validate scripts."
+      elif grep -Eiq 'SCRIPT[[:space:]]*\(E\)|[Ss]cript validation failed|[Cc]an.t compile .*script module|\.c\([0-9]+\):[[:space:]]*error:' "$SCRIPT_LOG"; then
+        info "ERROR: Workbench reported Enforce Script compilation errors."
+      else
+        SCRIPT_ERRORS=0
+        info "No compiler errors found in the current Workbench script.log."
+      fi
+    else
+      info "ERROR: The latest Workbench session has no fresh script.log."
+    fi
+  else
+    info "ERROR: No new Workbench .log files found in $LOG_ROOT."
+  fi
+
+  info "Potential compiler diagnostics (attempt $ATTEMPT):"
+  mapfile -d '' -t LOG_FILES < <(find "$ATTEMPT_DIR" -type f -name '*.log' -print0)
   if (( ${#LOG_FILES[@]} > 0 )); then
     grep -nEi '\(E\)|SCRIPT.*[Ee]rror|error|failed|failure' "${LOG_FILES[@]}" | tail -n 100 || true
   fi
-else
-  info "ERROR: No new Workbench .log files found in $LOG_ROOT; cannot verify compilation."
-  SCRIPT_ERRORS=1
-fi
 
-if (( RESULT == 0 && SCRIPT_ERRORS != 0 )); then
-  info "Process returned 0, but validation has failed according to Workbench logs."
-  RESULT=1
-fi
+  if (( PROCESS_RESULT == 0 && SCRIPT_ERRORS == 0 )); then
+    RESULT=0
+    info "Workbench validation succeeded on attempt $ATTEMPT/$MAX_ATTEMPTS."
+    break
+  fi
+
+  RESULT=$PROCESS_RESULT
+  if (( RESULT == 0 )); then
+    RESULT=1
+    info "Process returned 0, but Workbench logs did not verify compilation."
+  fi
+
+  # Fail closed. Only retry when startup crashes with a recognizable allocator
+  # signature AND no script.log exists. Never mask real Enforce compile errors.
+  if (( ATTEMPT >= MAX_ATTEMPTS || SCRIPT_LOG_PRESENT != 0 )); then
+    break
+  fi
+  if grep -REiq --include='*.log' 'SCRIPT[[:space:]]*\(E\).*error:|[Ss]cript validation failed|[Cc]an.t compile .*script module|\.c\([0-9]+\):[[:space:]]*error:' "$ATTEMPT_DIR"; then
+    info "Compiler errors found in diagnostic output; will not retry."
+    break
+  fi
+  if ! grep -Eiq 'double free or corruption|free\(\): invalid pointer|malloc\(\): corrupted|corrupted size vs\. prev_size' "$ATTEMPT_DIR/proton-output.log"; then
+    info "No recognized Proton startup crash signature; will not retry."
+    break
+  fi
+
+  info "Recognized Workbench/Proton startup allocator crash before compilation; retrying ($ATTEMPT/$MAX_ATTEMPTS)."
+  sleep "$RETRY_DELAY"
+done
 
 info "Effective validation exit code: $RESULT"
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
