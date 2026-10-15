@@ -14,8 +14,7 @@ GenericEntity : "{2E0E3D7D1DD0FF8F}Prefabs/Weapons/Core/Attachment_Base.et" {
     ItemPhysAttributes ItemPhysicalAttributes "{7D12171C82B54553}" {
      Weight 0.15
      SizeSetupStrategy Manual
-     ItemDimensions 8 8 8
-     ItemVolume 0.5
+     ItemVolume 500
     }
     CommonItemType "FOOD"
     m_Size SLOT_1x1
