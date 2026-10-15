@@ -1,7 +1,7 @@
 // Workbench Autotest framework: run suite LRP_TEST_AppleHarvestSuite.
-// This follows the stock SCR_TEST_Example1TestSuite pattern.
+// Uses Reforger's Autotest APIs in diagnostic Workbench and game builds.
 // Tests use a pure state object and do not need a player or an apple-tree prefab.
-#ifdef WORKBENCH
+#ifdef ENABLE_DIAG
 
 class LRP_TEST_AppleHarvestSuite : SCR_AutotestSuiteBase
 {
