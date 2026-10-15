@@ -147,7 +147,7 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		s_iFishingState = 1;
 		s_iAttemptToken++;
 		int token = s_iAttemptToken;
-		int waitMs = Math.RandomInt(30000, 120001);
+		int waitMs = Math.RandomInt(5000, 120001);
 		Print(string.Format("[LeafRP] Fishing started; waiting %1 milliseconds.", waitMs), LogLevel.NORMAL);
 		SCR_HintManagerComponent.ShowCustomHint("Waiting for a bite... Stay nearby!", "LeafRP Fishing", 3.0);
 		GetGame().GetCallqueue().CallLater(LRP_CheckRange, 250, false, token);
