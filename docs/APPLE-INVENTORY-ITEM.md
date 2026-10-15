@@ -22,7 +22,7 @@ Seven existing harvest/prefab tests plus two new game-side tests:
 - `LRP_TEST_AppleHarvest_InventoryApplePrefab` ensures the LeafRP item resource loads and spawns as an entity with `InventoryItemComponent`.
 - `LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory` checks a vanilla soldier has inventory capacity for apples and accepts `TrySpawnPrefabToStorage`.
 
-Tests use Reforger's built-in Autotest Framework and run through the existing Linux/Proton CI. A passing test only confirms storage accepts the insert; the final in-game check must verify an apple actually appears in inventory, as some inventory operations can complete asynchronously.
+Tests use Reforger's built-in Autotest Framework and run through the existing Linux/Proton CI. **All 9 tests passed** (0 failures, 0 skipped) in [GitHub Actions run 38688928970](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38688928970). A passing test confirms storage accepted the insertion request; the final in-game check must verify an apple actually appears in inventory, as some inventory operations can complete asynchronously.
 
 ## In-game manual test
 
