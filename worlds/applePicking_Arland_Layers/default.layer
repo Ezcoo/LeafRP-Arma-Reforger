@@ -31,7 +31,6 @@ SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastru
      }
      ActionTitle "Fish"
      VisibilityRange 3
-     Duration 5
     }
     LRP_ViewFishingStatsUserAction "{6A9EB9502B27501B}" {
      ParentContextList {
@@ -39,6 +38,13 @@ SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastru
      }
      ActionTitle "View Fishing Stats"
      VisibilityRange 3.8
+    }
+    LRP_HookFishUserAction "{6A9ED11C287240C2}" {
+     ParentContextList {
+      "LRP_FishingSpot"
+     }
+     ActionTitle "Hook fish!"
+     VisibilityRange 2
     }
    }
   }
