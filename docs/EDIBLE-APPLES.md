@@ -6,8 +6,8 @@
 
 1. The selected entity must contain our `LRP_ConsumableEffectEatApple`.
 2. It must actually be contained in the current character's managed inventory and the character must be alive.
-3. `InventoryStorageManagerComponent.TryDeleteItem(item)` must accept deleting this **one** apple entity.
-4. On success, LeafRP logs the action and shows **"You ate an apple."** The second apple, other items, and tree stock are not touched.
+3. Inventory **Use** schedules a callback about 100 ms later, leaving the item alive for vanilla `SCR_InventorySlotUI.UseItem` to finish its post-call `item.FindComponent` inspection (line 801 in the checked Reforger sources).
+4. The delayed callback revalidates item ownership and requests deletion of this **one** apple entity with `TryDeleteItem`. If the request is accepted, LeafRP logs the action and shows **"You ate an apple."** The second apple, other items, and tree stock are not touched. Repeated Use presses cannot queue duplicate callbacks for the same item.
 
 The direct inventory operation is **instant: no eating animation or interruption window**. This is deliberate, because the first implementation did nothing when the user pressed **Use**.
 
@@ -21,20 +21,25 @@ The first consumable attempt never reached the effect. Vanilla `SCR_ConsumableIt
 
 The latest fix handles **both** problems and adds the actual inventory UI method to the game-side test suite.
 
+## Crash regression: synchronous deletion during Inventory Use
+
+The first direct-use version called `TryDeleteItem` **inside** `SCR_CharacterInventoryStorageComponent.UseItem`. Although this removed the Apple, vanilla `SCR_InventorySlotUI.UseItem` then immediately accessed `item.FindComponent` while updating consumable analytics. The deleted item pointer threw a **Virtual Machine Exception (NULL pointer to instance, variable item)**. The corrected override schedules the deletion after the UI call completes, with a pending-item guard and another inventory ownership check in the callback.
+
 ## Manual acceptance test
 
 1. Check out `feature/edible-apples` and reopen the addon in Workbench.
 2. Open `worlds/applePicking_Arland.ent` and harvest **two apples**.
 3. Open inventory, focus one apple and choose **Use**.
-4. Expect an immediate **"You ate an apple."** notification and the item to disappear. No animation is expected in this inventory shortcut.
+4. Expect **"You ate an apple."** and the item to disappear a fraction of a second after using it. No animation is expected in this inventory shortcut.
 5. Verify **the second apple remains** and can also be eaten.
 6. Verify the original apple-tree stock and regrowth still work.
 
 Diagnostics:
-- `[LeafRP] Eat Apple: inventory Use accepted; deleting one Apple.` — the inventory operation accepted the request.
+- `[LeafRP] Eat Apple: inventory Use queued safely after UI handler.` — the item remains alive while the native inventory UI finishes.
+- `[LeafRP] Eat Apple: deferred deletion accepted.` — the delayed inventory operation accepted the deletion request.
 - `[LeafRP] Player ate one Apple.` — notification path executed.
 - `[LeafRP] Eat Apple: rejected inventory Use` — item wasn't in the current inventory, or eater invalid.
-- `[LeafRP] Eat Apple: inventory deletion request was rejected.` — the inventory couldn't delete the item.
+- `[LeafRP] Eat Apple: delayed inventory deletion request was rejected.` — the inventory couldn't delete the item.
 - `[LeafRP] Eat Apple activation gate reached by native gadget.` — the **separate held-gadget** action reached the effect.
 
 ## Automated tests
@@ -44,11 +49,13 @@ The `LRP_TEST_AppleHarvestSuite` now contains **12 tests** in total. The added `
 - Spawns a real soldier and two Apple entities in native inventory.
 - Obtains the soldier's actual `SCR_CharacterInventoryStorageComponent`.
 - Invokes `UseItem(firstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY)` — exactly the UI path.
-- Requires the operation to be accepted, **waits until the consumed Apple actually disappears** from the character's inventory, and verifies that the **other apple remains**.
+- Requires that the item **remain accessible immediately after UseItem returns**, mirroring the native UI's following `item.FindComponent` call.
+- Issues a second Use while deletion is pending to verify it cannot schedule duplicate consumption.
+- **Waits until the consumed Apple actually disappears** from the character's inventory, and verifies that the **other apple remains**.
 
 The existing consumable test also checks the native gadget's `CanApplyEffect(character, appleItem)` call convention.
 
-**Validation:** [12/12 game-side tests passed with zero failures](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38693065416), alongside successful Workbench compilation. The new test verifies actual removal after the engine completes the operation, but the in-game HUD still needs a manual smoke test.
+**Validation:** the original 12/12 test run was https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38693065416. The follow-up crash regression now checks both immediate item access and eventual deletion. A full in-game HUD smoke test remains essential.
 
 ## Limitations
 
