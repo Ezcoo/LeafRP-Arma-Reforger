@@ -78,10 +78,17 @@ class LRP_ConsumableEffectEatApple : SCR_ConsumableEffectBase
 	// The owning SCR_ConsumableItemComponent handles deleting this one apple.
 	override void ApplyEffect(notnull IEntity target, notnull IEntity user, IEntity item, ItemUseParameters animParams)
 	{
+		LRP_ReportAppleEaten(user);
+	}
+
+	// Called after a native animation completes OR after Inventory -> Use
+	// successfully requests deletion of one inventory Apple.
+	void LRP_ReportAppleEaten(IEntity eater)
+	{
 		Print("[LeafRP] Player ate one Apple.", LogLevel.NORMAL);
 
 		SCR_PlayerController player = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		if (player && player.GetControlledEntity() == user && SCR_HintManagerComponent.GetInstance())
+		if (player && player.GetControlledEntity() == eater && SCR_HintManagerComponent.GetInstance())
 			SCR_HintManagerComponent.ShowCustomHint("You ate an apple.", "LeafRP", 3.0);
 	}
 }
