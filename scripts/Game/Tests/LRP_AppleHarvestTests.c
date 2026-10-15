@@ -252,5 +252,6 @@ class LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory : SCR_Autotest
 
 		SCR_EntityHelper.DeleteEntityAndChildren(character);
 	}
+}
 
 #endif
