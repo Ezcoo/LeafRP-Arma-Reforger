@@ -254,4 +254,76 @@ class LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory : SCR_Autotest
 	}
 }
 
+// The Apple must be a native consumable gadget with a delete-on-use
+// effect, rather than just an inventory item labelled "food".
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 20)]
+class LRP_TEST_AppleHarvest_AppleIsEdible : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_ConsumablePrefab()
+	{
+		Resource prefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
+		AssertTrue(prefab.IsValid(), "Apple prefab must load");
+		if (!prefab.IsValid())
+			return;
+
+		IEntity apple = GetGame().SpawnEntityPrefab(prefab, GetGame().GetWorld());
+		AssertTrue(apple != null, "Apple item must spawn");
+		if (!apple)
+			return;
+
+		SCR_ConsumableItemComponent consumable = SCR_ConsumableItemComponent.Cast(apple.FindComponent(SCR_ConsumableItemComponent));
+		AssertTrue(consumable != null, "Apple must have a native consumable item component");
+		if (consumable)
+		{
+			AssertTrue(consumable.GetType() == EGadgetType.CONSUMABLE, "Apple must be a consumable gadget");
+			LRP_ConsumableEffectEatApple effect = LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect());
+			AssertTrue(effect != null, "Apple must have its custom eating effect");
+			if (effect)
+				AssertTrue(effect.GetDeleteOnUse(), "An eaten apple must be removed after use");
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(apple);
+	}
+}
+
+// Eating should remain possible at full health and only target the eater.
+[Test(suite: LRP_TEST_AppleHarvestSuite, timeoutS: 25)]
+class LRP_TEST_AppleHarvest_CanEatAtFullHealth : SCR_AutotestCaseBase
+{
+	[TestStep(TestStage.Main)]
+	void Execute_EatingRequirements()
+	{
+		Resource applePrefab = Resource.Load("{7D12171C82B54550}Prefabs/Items/LeafRP_Apple.et");
+		Resource characterPrefab = Resource.Load("{26A9756790131354}Prefabs/Characters/Factions/BLUFOR/US_Army/Character_US_Rifleman.et");
+		AssertTrue(applePrefab.IsValid(), "Apple prefab must load");
+		AssertTrue(characterPrefab.IsValid(), "Vanilla character prefab must load");
+		if (!applePrefab.IsValid() || !characterPrefab.IsValid())
+			return;
+
+		IEntity apple = GetGame().SpawnEntityPrefab(applePrefab, GetGame().GetWorld());
+		IEntity character = GetGame().SpawnEntityPrefab(characterPrefab, GetGame().GetWorld());
+		AssertTrue(apple != null && character != null, "Apple and soldier must spawn");
+		if (apple && character)
+		{
+			SCR_ConsumableItemComponent consumable = SCR_ConsumableItemComponent.Cast(apple.FindComponent(SCR_ConsumableItemComponent));
+			if (consumable)
+			{
+				LRP_ConsumableEffectEatApple effect = LRP_ConsumableEffectEatApple.Cast(consumable.GetConsumableEffect());
+				AssertTrue(effect != null, "Eating effect must exist");
+				if (effect)
+				{
+					AssertTrue(effect.CanApplyEffect(character, character), "Healthy soldier must be allowed to eat an apple");
+					AssertTrue(!effect.CanApplyEffect(apple, character), "Eating must not target an unrelated entity");
+				}
+			}
+		}
+
+		if (apple)
+			SCR_EntityHelper.DeleteEntityAndChildren(apple);
+		if (character)
+			SCR_EntityHelper.DeleteEntityAndChildren(character);
+	}
+}
+
 #endif
