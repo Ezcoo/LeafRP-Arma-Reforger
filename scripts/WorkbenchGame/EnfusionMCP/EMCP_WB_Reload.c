@@ -59,51 +59,24 @@ class EMCP_WB_Reload : NetApiHandler
 			ScriptEditor scriptEditor = Workbench.GetModule(ScriptEditor);
 			if (scriptEditor)
 			{
-				// Try known menu paths for script compilation in ScriptEditor
-				array<string> menuPath = {};
-				bool compiled = false;
-
-				// Try "Script, Compile" first
-				menuPath.Insert("Script");
-				menuPath.Insert("Compile");
-				compiled = scriptEditor.ExecuteAction(menuPath);
-
-				if (!compiled)
+				// WBModuleDef.ExecuteAction accepts menu labels as an array.
+				// A true return accepts the action; compiler results must be read from logs.
+				array<string> menuPath = {"Build", "Compile and Reload Scripts"};
+				bool reloadRequested = scriptEditor.ExecuteAction(menuPath);
+				scriptsOk = reloadRequested;
+				if (reloadRequested)
+					results.Insert("Scripts: ScriptEditor Build / Compile and Reload Scripts accepted; compilation and reload completion must be verified in logs");
+				else
 				{
-					// Try "Build, Compile All"
 					menuPath.Clear();
 					menuPath.Insert("Build");
-					menuPath.Insert("Compile All");
-					compiled = scriptEditor.ExecuteAction(menuPath);
+					menuPath.Insert("Validate Scripts");
+					bool validationRequested = scriptEditor.ExecuteAction(menuPath);
+					if (validationRequested)
+						results.Insert("Scripts: ScriptEditor Build / Compile and Reload Scripts returned false; fallback Build / Validate Scripts accepted (validation only; scripts were NOT reloaded). Check logs for validation results");
+					else
+						results.Insert("Scripts: ScriptEditor ExecuteAction returned false for Build / Compile and Reload Scripts and fallback Build / Validate Scripts; no reload requested. Use these actions manually in ScriptEditor; do not try undocumented menu paths");
 				}
-
-				if (!compiled)
-				{
-					// Try "Script, Compile All"
-					menuPath.Clear();
-					menuPath.Insert("Script");
-					menuPath.Insert("Compile All");
-					compiled = scriptEditor.ExecuteAction(menuPath);
-				}
-
-				if (!compiled)
-				{
-					// Try via WorldEditor as fallback
-					WorldEditor worldEditor = Workbench.GetModule(WorldEditor);
-					if (worldEditor)
-					{
-						menuPath.Clear();
-						menuPath.Insert("Plugins");
-						menuPath.Insert("Reload Scripts");
-						compiled = worldEditor.ExecuteAction(menuPath);
-					}
-				}
-
-				scriptsOk = compiled;
-				if (compiled)
-					results.Insert("Scripts: compilation triggered");
-				else
-					results.Insert("Scripts: every ExecuteAction path returned false (Script/Compile, Build/Compile All, Script/Compile All, Plugins/Reload Scripts)");
 			}
 			else
 			{
@@ -119,13 +92,14 @@ class EMCP_WB_Reload : NetApiHandler
 			{
 				array<string> menuPath = {};
 				menuPath.Insert("Plugins");
-				menuPath.Insert("Reload");
+				menuPath.Insert("Settings");
+				menuPath.Insert("Reload WB Scripts");
 				bool result = resMgr.ExecuteAction(menuPath);
 				pluginsOk = result;
 				if (result)
-					results.Insert("Plugins: reload triggered");
+					results.Insert("Plugins: ResourceManager Plugins / Settings / Reload WB Scripts accepted; reload completion is not verified");
 				else
-					results.Insert("Plugins: ExecuteAction(Plugins, Reload) returned false");
+					results.Insert("Plugins: ResourceManager ExecuteAction(Plugins / Settings / Reload WB Scripts) returned false; use the documented action manually");
 			}
 			else
 			{

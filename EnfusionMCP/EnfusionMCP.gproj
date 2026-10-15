@@ -1,0 +1,14 @@
+GameProject {
+ ID "EnfusionMCP"
+ GUID "E7CC361FD720F7CA"
+ TITLE "EnfusionMCP Handlers"
+ Dependencies {
+  "58D0FB3206B6F859"
+ }
+ Configurations {
+  GameProjectConfig PC {
+  }
+  GameProjectConfig HEADLESS {
+  }
+ }
+}
