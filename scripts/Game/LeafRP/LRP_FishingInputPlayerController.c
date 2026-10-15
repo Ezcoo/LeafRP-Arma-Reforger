@@ -25,8 +25,12 @@ modded class SCR_PlayerController
 	{
 		if (GetPlayerId() != SCR_PlayerController.GetLocalPlayerId())
 			return;
+		Print("[LeafRP] LRP_HookFish key action received.", LogLevel.NORMAL);
 		if (!LRP_VirtualFishingUserAction.LRP_HasBite())
+		{
+			Print("[LeafRP] Hook key ignored: no active bite window.", LogLevel.NORMAL);
 			return;
+		}
 		LRP_VirtualFishingUserAction.LRP_HookFish();
 	}
 }
