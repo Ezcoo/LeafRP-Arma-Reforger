@@ -38,11 +38,22 @@ The tests are compiled in diagnostic builds under `ENABLE_DIAG`, allowing both W
 
 Alternative: in **World Editor**, open **Autotest Tool**, enter `LRP_TEST_AppleHarvestSuite`, then select **Run class**.
 
-## GitHub Actions (experimental)
+## GitHub Actions (verified)
 
-The Linux runner already verifies compilation with `scripts/validate-reforger-linux.sh`. This branch additionally tries `scripts/run-reforger-autotests.sh`, which launches the **game diagnostic executable** through Proton with `-autotest LRP_TEST_AppleHarvestSuite`, and expects a fresh `junit.xml` report.
+The Linux runner compiles scripts through `scripts/validate-reforger-linux.sh`, then launches the real **ArmaReforgerSteamDiag.exe** through Proton using `-autotest LRP_TEST_AppleHarvestSuite`.
 
-The runner **fails closed** if the report is missing, test cases are missing, any test failed/skipped, or the process fails/times out. This experimental step must be validated against our particular Proton + Workbench installation before enabling it for `main` branches. Until then the manual Workbench test is the supported verification method.
+The runner verifies a **fresh** `junit.xml` report containing all five expected tests, with no errors, failures or skips. It fails the workflow if the suite did not run or the game times out (even if Proton exits with code 0). The reports and logs are uploaded as `apple-autotest-results` artifacts.
+
+Verified against GitHub Actions run https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38680240538: **5 cases, 0 failures, 0 skipped**.
+
+After merging, the regular `main`-branch GitHub Actions workflow will execute **both compilation and these tests** for every relevant push. Pull requests do not automatically execute remote code on the user's machine until merged, preserving our existing self-hosted runner trust boundary.
+
+### Diagnosing failures
+
+- Compiler fail: inspect `workbench-logs/script.log`.
+- Autotest doesn't launch: inspect `apple-autotest-results/ArmaReforger/logs/.../script.log`; `Invalid -autotest parameter value` means the test class was not discovered in the diagnostic game build.
+- Test case fail: open `junit.xml`, which lists failing assertions.
+- No fresh JUnit report: the run is **not** counted as passing.
 
 ## What remains
 
