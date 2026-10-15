@@ -91,6 +91,8 @@ expected = {
     "LRP_TEST_AppleHarvest_TreeActionVisibleToCharacter",
     "LRP_TEST_AppleHarvest_InventoryApplePrefab",
     "LRP_TEST_AppleHarvest_AppleIsInsertedIntoCharacterInventory",
+    "LRP_TEST_AppleHarvest_AppleIsEdible",
+    "LRP_TEST_AppleHarvest_CanEatAtFullHealth",
 }
 missing = [name for name in sorted(expected) if not any(name in actual for actual in names)]
 print(f"[autotest-ci] JUnit: {len(cases)} testcases, {len(errors)} failures/errors, {len(skipped)} skipped")
