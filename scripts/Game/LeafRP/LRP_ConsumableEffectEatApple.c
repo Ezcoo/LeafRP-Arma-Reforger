@@ -36,6 +36,30 @@ class LRP_ConsumableEffectEatApple : SCR_ConsumableEffectBase
 		return m_iPlayerApplyToSelfCmdId >= 0;
 	}
 
+	// Native consumables must send the animation command to the controller.
+	// The inherited default uses TryUseItem(item) without the self-use
+	// override command, which leaves this custom food item inert in practice.
+	override bool ActivateEffect(IEntity target, IEntity user, IEntity item, ItemUseParameters animParams = null)
+	{
+		if (!target || !user || !item || !CanApplyEffect(target, user))
+			return false;
+
+		ItemUseParameters parameters = animParams;
+		if (!parameters)
+			parameters = GetAnimationParameters(item, target);
+
+		if (!parameters || parameters.GetCommandID() < 0)
+		{
+			Print("[LeafRP] Eat Apple cannot start: no valid use animation command.", LogLevel.WARNING);
+			return false;
+		}
+
+		bool started = super.ActivateEffect(target, user, item, parameters);
+		Print(string.Format("[LeafRP] Eat Apple animation request: started=%1, command=%2.",
+			started, parameters.GetCommandID()), LogLevel.NORMAL);
+		return started;
+	}
+
 	// Called only after the inventory use completes successfully.
 	// The owning SCR_ConsumableItemComponent handles deleting this one apple.
 	override void ApplyEffect(notnull IEntity target, notnull IEntity user, IEntity item, ItemUseParameters animParams)
