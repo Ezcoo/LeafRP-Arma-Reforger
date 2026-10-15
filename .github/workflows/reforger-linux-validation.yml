@@ -3,7 +3,7 @@ name: Validate Reforger scripts (Linux)
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/apple-autotests]
+    branches: [main]
     paths:
       - "Scripts/**"
       - "scripts/**"
@@ -31,13 +31,12 @@ jobs:
         shell: bash
         run: bash scripts/validate-reforger-linux.sh
 
-      - name: Run apple harvesting autotests (experimental)
-        if: github.ref == 'refs/heads/feature/apple-autotests'
+      - name: Run apple harvesting autotests
         shell: bash
         run: bash scripts/run-reforger-autotests.sh
 
       - name: Upload Reforger autotest results
-        if: always() && github.ref == 'refs/heads/feature/apple-autotests'
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: apple-autotest-results
