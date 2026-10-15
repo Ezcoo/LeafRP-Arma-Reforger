@@ -1,4 +1,4 @@
-// LeafRP virtual fishing v0.2.
+// LeafRP virtual fishing v0.3.
 // Existing 15-second action duration remains configured on the fishing
 // spot's ActionsManagerComponent in Workbench. No physical fish items.
 //
@@ -10,11 +10,21 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 	protected static int s_iCatchCount;
 	protected static int s_iTotalWeightDecigrams;
 	protected static int s_iBiggestWeightDecigrams;
+	protected static int s_iBootCount;
+	protected static int s_iGoldenPerchCount;
 
 	// Each unit here is 0.1 kg, despite the legacy 'Decigrams' field name.
 	protected static string LRP_FormatWeight(int tenthsKg)
 	{
 		return string.Format("%1.%2 kg", tenthsKg / 10, tenthsKg % 10);
+	}
+
+	// Shared by the Fish and View Fishing Stats actions on this client.
+	static string LRP_GetStatsText()
+	{
+		return string.Format("Fish: %1 | Total: %2\\nLargest: %3\\nOld boots: %4 | Golden perch: %5",
+			s_iCatchCount, LRP_FormatWeight(s_iTotalWeightDecigrams),
+			LRP_FormatWeight(s_iBiggestWeightDecigrams), s_iBootCount, s_iGoldenPerchCount);
 	}
 
 	override bool GetActionNameScript(out string outName)
@@ -50,8 +60,19 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 			return;
 		}
 
-		// Conditional species chances on a successful catch:
-		// perch 50%, herring 35%, pike 15%.
+		// Rare finds are decided after the successful bite:
+		// 3% old boot (junk), 2% golden perch, otherwise ordinary fish.
+		int rareRoll = Math.RandomInt(0, 100);
+		if (rareRoll < 3)
+		{
+			s_iBootCount++;
+			Print("[LeafRP] Virtual fishing: caught an old boot.", LogLevel.NORMAL);
+			SCR_HintManagerComponent.ShowCustomHint("You fished up an old boot!\\n" + LRP_GetStatsText(), "LeafRP Fishing", 6.0);
+			return;
+		}
+
+		bool goldenPerch = rareRoll < 5;
+		// Standard species probabilities remain 50/35/15 for non-rare fish.
 		int speciesRoll = Math.RandomInt(0, 100);
 		string species;
 		int weightTenthsKg;
@@ -69,6 +90,13 @@ class LRP_VirtualFishingUserAction : ScriptedUserAction
 		{
 			species = "Pike";
 			weightTenthsKg = Math.RandomInt(10, 121); // 1.0 - 12.0 kg
+		}
+
+		if (goldenPerch)
+		{
+			species = "Golden perch";
+			weightTenthsKg = Math.RandomInt(10, 31); // 1.0 - 3.0 kg
+			s_iGoldenPerchCount++;
 		}
 
 		s_iCatchCount++;
