@@ -14,6 +14,11 @@ Tree : "{354709C8FFC6DEC2}Prefabs/Vegetation/Tree/t_malus_domestica/t_malus_dome
 }
 SCR_DestructibleBuildingEntity : "{48023B0C1DCC8F0D}Prefabs/Structures/Infrastructure/Naval/Piers/PierWooden_01_10m.et" {
  components {
+  SoundComponent "{6A9F167AEAFF78C2}" {
+   Filenames {
+    "{CD26DFD88573FD29}Audio/LeafRP_Fishing.acp"
+   }
+  }
   ActionsManagerComponent "{6A9EB95DADF99161}" {
    ActionContexts {
     UserActionContext "{6A9EB95DA27382CB}" {

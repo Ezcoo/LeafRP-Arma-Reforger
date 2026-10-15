@@ -1,0 +1,35 @@
+AudioClass {
+ sounds {
+  SoundClass "2057" {
+   id 2057
+   name "LRP_FISH_BITE"
+   version 5
+   tl 272 -48
+   ins {
+    ConnectionsClass "con:64" {
+     id 64
+     links {
+      ConnectionClass "1028:65" {
+       id 1028
+       port 65
+      }
+     }
+    }
+   }
+  }
+ }
+ banks_local {
+  BankLocalClass "1028" {
+   id 1028
+   name "Bank 1"
+   version 7
+   tl 0 -32
+   Samples {
+    AudioBankSampleClass "LRP_FISH_BITE.wav" {
+     Filename "{CC122A0189130F05}Audio/Source/LRP_FISH_BITE.wav"
+    }
+   }
+  }
+ }
+ version 2
+}
