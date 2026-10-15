@@ -55,7 +55,7 @@ The `LRP_TEST_AppleHarvestSuite` now contains **12 tests** in total. The added `
 
 The existing consumable test also checks the native gadget's `CanApplyEffect(character, appleItem)` call convention.
 
-**Validation:** the original 12/12 test run was https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38693065416. The follow-up crash regression now checks both immediate item access and eventual deletion. A full in-game HUD smoke test remains essential.
+**Validation:** the updated regression suite passed **12/12 game-side tests with zero failures or skips** after the deferred deletion fix: https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38695016110. Workbench compilation also reported no script errors. The test checks that `FindComponent` remains safe immediately after inventory Use and that the item subsequently disappears. A full in-game HUD smoke test remains essential.
 
 ## Limitations
 
