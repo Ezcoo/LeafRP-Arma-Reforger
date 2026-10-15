@@ -49,7 +49,7 @@ modded class SCR_CharacterInventoryStorageComponent
 
 	protected void LRP_CompleteAppleUse(IEntity item, IEntity eater)
 	{
-		m_sLRPPendingAppleUse.Remove(item);
+		m_sLRPPendingAppleUse.RemoveItem(item);
 
 		if (!item || !eater || eater != GetOwner())
 			return;
