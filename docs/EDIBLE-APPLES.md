@@ -1,44 +1,57 @@
-# Eating apples in LeafRP
+# Edible apples — LeafRP (vanilla only)
 
-This feature uses **vanilla Arma Reforger's built-in consumable gadget pipeline**, without any external mod dependency or new animation assets.
+## Working design
 
-## How it works
+**Inventory → Use on an Apple is now a direct, instant eat operation.** The vanilla UI passes this choice to `SCR_CharacterInventoryStorageComponent.UseItem(..., SCR_EUseContext.FROM_INVENTORY)`; we handle only apples in a targeted `modded` override, leaving all other items' behavior unchanged.
 
-- Each `Prefabs/Items/LeafRP_Apple.et` now has an `SCR_ConsumableItemComponent`, configured with `LRP_ConsumableEffectEatApple`.
-- When a player uses an Apple from inventory and the underlying vanilla use action **finishes successfully**, the custom effect shows **"You ate an apple."** and the built-in consumable component removes that one inventory entity (`m_bDeleteOnUse = 1`).
-- The animation currently reuses the vanilla `CMD_HealSelf` command and one-handed item animation setup; this is **not an eating-specific animation**.
-- The effect is allowed even when the player has full health. Eating provides **no health/hunger bonus yet** because we have not introduced a survival system.
-- The visual mesh is still the temporary inert vanilla M67 round-object placeholder, **not a grenade item**.
-- New apples harvested from the existing Arland tree automatically use the updated edible prefab; no changes to the tree interaction or stock logic are needed.
+1. The selected entity must contain our `LRP_ConsumableEffectEatApple`.
+2. It must actually be contained in the current character's managed inventory and the character must be alive.
+3. `InventoryStorageManagerComponent.TryDeleteItem(item)` must accept deleting this **one** apple entity.
+4. On success, LeafRP logs the action and shows **"You ate an apple."** The second apple, other items, and tree stock are not touched.
 
-## Testing in Workbench
+The direct inventory operation is **instant: no eating animation or interruption window**. This is deliberate, because the first implementation did nothing when the user pressed **Use**.
 
-1. Check out `feature/edible-apples`, reopen the addon in Workbench, and load `worlds/applePicking_Arland.ent`.
-2. Pick **two** apples from the tree.
-3. Open inventory, select one **Apple** and use the inventory **Use** action. This may **only equip the gadget** on the first press; close inventory and trigger the normal gadget-use/activate input while holding it. The exact input depends on your control bindings.
-4. Confirm **"You ate an apple."** appears **only after finishing use**, and exactly **one** apple disappears from inventory.
-5. Use the second apple, check that it disappears too.
-6. Test an interrupted item-use animation; it should leave the apple intact because the built-in consumable cleanup is only called on successful completion.
-7. Check that harvesting and 300-second regrowth still behave as before.
+The separate vanilla held-gadget activation path still uses our existing `LRP_ConsumableEffectEatApple` and its placeholder `CMD_HealSelf` animation. The effect now supports both vanilla `CanApplyEffect(character, character)` (inventory UI) and `CanApplyEffect(character, appleItem)` (held gadget activation). For now, **use Inventory → Use**, not the held-gadget controls, as the acceptance path.
 
-## Automated regression checks
+No hunger, thirst or health restoration yet. Those require a separate survival system. The item retains its harmless temporary visual model; no third-party dependencies or animation assets were introduced.
 
-The native `LRP_TEST_AppleHarvestSuite` checks the consumable component, delete-on-use effect, eligibility for healthy soldiers, inventory-use mask, gadget animation mode, and that `GetAnimationParameters` binds a valid self-use animation command.
+## Why the earlier version did nothing
 
-**CI verified after the animation fix:** [11/11 native Reforger Autotests passed](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38691683556) with no script compilation errors, test failures, or skipped tests. These tests do **not** simulate the player's inventory button presses or the completed use animation; the manual acceptance test covers those.
+The first consumable attempt never reached the effect. Vanilla `SCR_ConsumableItemComponent.ActivateAction` checks `CanApplyEffect(character, GetOwner())`, where `GetOwner()` is the **item**. Our original check required its second argument to be the character, so activation was silently rejected. Even after fixing this, Inventory → Use typically **equips/toggles a gadget** rather than directly consuming it.
 
-## If pressing Use appears to do nothing
+The latest fix handles **both** problems and adds the actual inventory UI method to the game-side test suite.
 
-- If the apple is merely placed in the character's hand, activate that held gadget after closing inventory.
-- Check the current game `script.log` for `[LeafRP] Eat Apple animation request: started=...`. `started=0` means the engine rejected the animation start; `started=1` means it accepted it.
-- `Eat Apple cannot start: no valid use animation command` means the self-use command was unavailable in that character's animation graph.
-- `[LeafRP] Player ate one Apple.` indicates the consumable's successful completion callback ran. If an apple remains afterward, investigate item deletion/replication instead of animation triggering.
-- If none of these logs appear, the inventory/gadget activation path did not invoke our custom effect at all.
+## Manual acceptance test
 
+1. Check out `feature/edible-apples` and reopen the addon in Workbench.
+2. Open `worlds/applePicking_Arland.ent` and harvest **two apples**.
+3. Open inventory, focus one apple and choose **Use**.
+4. Expect an immediate **"You ate an apple."** notification and the item to disappear. No animation is expected in this inventory shortcut.
+5. Verify **the second apple remains** and can also be eaten.
+6. Verify the original apple-tree stock and regrowth still work.
 
-## Known limitations
+Diagnostics:
+- `[LeafRP] Eat Apple: inventory Use accepted; deleting one Apple.` — the inventory operation accepted the request.
+- `[LeafRP] Player ate one Apple.` — notification path executed.
+- `[LeafRP] Eat Apple: rejected inventory Use` — item wasn't in the current inventory, or eater invalid.
+- `[LeafRP] Eat Apple: inventory deletion request was rejected.` — the inventory couldn't delete the item.
+- `[LeafRP] Eat Apple activation gate reached by native gadget.` — the **separate held-gadget** action reached the effect.
 
-- No hunger, thirst or health effects (future reusable survival stats feature).
-- No eating-specific animation or real apple mesh.
-- Tree harvesting stock remains local to the session and is not yet a server-authoritative multiplayer economy.
-- Using and deleting an item is based on vanilla Reforger inventory behavior; full multiplayer verification is still future work.
+## Automated tests
+
+The `LRP_TEST_AppleHarvestSuite` now contains **12 tests** in total. The added `LRP_TEST_AppleHarvest_EatUsingInventoryUse` test:
+
+- Spawns a real soldier and two Apple entities in native inventory.
+- Obtains the soldier's actual `SCR_CharacterInventoryStorageComponent`.
+- Invokes `UseItem(firstApple, ESlotFunction.TYPE_GENERIC, SCR_EUseContext.FROM_INVENTORY)` — exactly the UI path.
+- Requires the operation to be accepted and verifies that the **other apple remains**.
+
+The existing consumable test also checks the native gadget's `CanApplyEffect(character, appleItem)` call convention.
+
+**Validation:** [12/12 game-side tests passed with zero failures](https://github.com/Ezcoo/LeafRP-Arma-Reforger/actions/runs/38692771460), alongside successful Workbench compilation. Automated deletion-acceptance doesn't replace the manual inventory-UI smoke test.
+
+## Limitations
+
+- No dedicated eating animation from inventory (immediate consumption).
+- No nutrition, medical effects, stamina effects, persistence, or server-authoritative multiplayer resource handling.
+- `TryDeleteItem` returning true means the inventory system **accepted** the deletion request. Final UI state must be confirmed in-game.
